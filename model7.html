@@ -1,0 +1,725 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steak Market Adjustment Model — Microeconomics</title>
+<meta name="description" content="Interactive supply and demand model for the steak market. Starting price $15, quantity 1.5 million tons. Visualizes increased demand, shortage, rising price, rising quantity demanded, and falling quantity supplied.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #09111f;
+  --panel: #0f1d2e;
+  --panel2: #152438;
+  --border: #1e3350;
+  --d1: #fb923c;
+  --d2: #ef4444;
+  --supply: #22d3ee;
+  --eq: #86efac;
+  --shortage: #fbbf24;
+  --accent: #a78bfa;
+  --text: #e8f0fe;
+  --muted: #6b8caf;
+  --focus: #facc15;
+  --radius: 14px;
+  --font-mono: 'Space Mono', monospace;
+  --font-display: 'Syne', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+.skip-link {
+  position: absolute; top: -999px; left: 8px;
+  background: var(--focus); color: #000;
+  font-weight: 700; padding: 8px 18px;
+  border-radius: 6px; z-index: 9999;
+  font-family: var(--font-mono); font-size: 0.85rem;
+  text-decoration: none;
+}
+.skip-link:focus { top: 8px; }
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+.page { max-width: 1200px; margin: 0 auto; padding: 24px 16px 60px; }
+header { text-align: center; margin-bottom: 28px; }
+header h1 {
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
+  font-weight: 800; letter-spacing: -0.02em;
+  background: linear-gradient(130deg, var(--d1), var(--accent), var(--supply));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+header p {
+  color: var(--muted); font-family: var(--font-mono);
+  font-size: 0.7rem; margin-top: 6px; letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px; align-items: start;
+}
+@media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.stage-track {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 14px;
+  list-style: none;
+  padding: 0;
+}
+.stage-pill {
+  font-family: var(--font-mono); font-size: 0.58rem;
+  padding: 5px 11px; border-radius: 99px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--muted);
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+  white-space: nowrap; cursor: default;
+  user-select: none; display: inline-block;
+}
+.stage-pill[aria-current="step"] {
+  background: var(--accent); color: #06080f;
+  border-color: var(--accent); font-weight: 700;
+}
+.stage-pill.done {
+  background: var(--panel2); color: var(--text);
+  border-color: #2a4060;
+}
+canvas {
+  display: block; width: 100% !important;
+  border-radius: 8px; background: #060e1a;
+}
+#chart-desc {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--muted); margin-top: 10px; line-height: 1.8;
+  min-height: 3.5em;
+}
+.controls {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;
+}
+.btn {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  font-weight: 700; letter-spacing: 0.04em;
+  padding: 11px 22px; border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer; flex: 1; min-width: 120px;
+  transition: all 0.2s;
+}
+.btn-primary { background: var(--accent); color: #06080f; border-color: var(--accent); }
+.btn-primary:hover { background: #c4b5fd; border-color: #c4b5fd; }
+.btn-primary:disabled {
+  background: var(--panel2); color: var(--muted);
+  border-color: var(--border); cursor: not-allowed;
+}
+.btn-secondary {
+  background: transparent; color: var(--text);
+  border-color: var(--border);
+}
+.btn-secondary:hover { border-color: var(--muted); background: var(--panel2); }
+.speed-row {
+  display: flex; align-items: center; gap: 12px; margin-top: 14px;
+}
+.speed-row label {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--muted); white-space: nowrap;
+}
+input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 4px; }
+.speed-val { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text); min-width: 28px; }
+.side { display: flex; flex-direction: column; gap: 16px; }
+.card h2 {
+  font-family: var(--font-mono); font-size: 0.62rem;
+  letter-spacing: 0.12em; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.metric-grid { display: flex; flex-direction: column; gap: 10px; }
+.metric {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--panel2); border: 1px solid var(--border);
+}
+.metric-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--muted); }
+.metric-value {
+  font-family: var(--font-mono); font-size: 0.9rem;
+  font-weight: 700; color: var(--text); transition: color 0.4s;
+}
+.metric-value.up   { color: var(--eq); }
+.metric-value.down { color: var(--d2); }
+.metric-value.warn { color: var(--shortage); }
+.legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-item {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono); font-size: 0.62rem; color: var(--text);
+}
+.legend-swatch { width: 28px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+#explainer { font-size: 0.82rem; line-height: 1.75; color: var(--text); min-height: 5em; }
+#explainer strong { color: var(--accent); }
+.tag {
+  display: inline-block; font-family: var(--font-mono); font-size: 0.6rem;
+  padding: 2px 8px; border-radius: 99px; margin-right: 4px; font-weight: 700;
+}
+.tag-demand { background: rgba(251,146,60,0.18); color: var(--d1); }
+.tag-price  { background: rgba(167,139,250,0.15); color: var(--accent); }
+.tag-short  { background: rgba(251,191,36,0.15); color: var(--shortage); }
+.kbd-hint {
+  font-family: var(--font-mono); font-size: 0.6rem;
+  color: var(--muted); margin-top: 10px; line-height: 1.9;
+}
+kbd {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 3px; padding: 1px 5px; font-size: 0.6rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .metric-value { transition: none !important; }
+}
+@media (forced-colors: active) {
+  .btn-primary { forced-color-adjust: none; }
+  canvas { border: 2px solid ButtonText; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main-controls" class="skip-link">Skip to controls</a>
+
+<div class="page" role="main">
+  <header>
+    <h1>Steak Market Adjustment Model</h1>
+    <p>Supply &amp; Demand · Starting Price $15 · Quantity 1.5M Tons · Interactive</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- CHART COLUMN -->
+    <section class="card" aria-labelledby="chart-section-heading">
+      <h2 id="chart-section-heading" class="sr-only">Supply and Demand Chart</h2>
+
+      <ol class="stage-track" aria-label="Market adjustment stages">
+        <li><span class="stage-pill" id="pill-0">① Initial Equilibrium</span></li>
+        <li><span class="stage-pill" id="pill-1">② Demand Increases</span></li>
+        <li><span class="stage-pill" id="pill-2">③ Shortage Appears</span></li>
+        <li><span class="stage-pill" id="pill-3">④ Price Rises</span></li>
+        <li><span class="stage-pill" id="pill-4">⑤ New Equilibrium</span></li>
+      </ol>
+
+      <canvas id="chart" width="700" height="480"
+        role="img"
+        aria-label="Steak Market Supply and Demand Graph"
+        aria-describedby="chart-desc">
+      </canvas>
+
+      <div id="chart-desc"
+        aria-live="polite"
+        aria-atomic="true"
+        role="status">
+        Stage 1 of 5 — Initial equilibrium. Price = $15.00, Quantity = 1.50 million tons of steak. Supply curve S and demand curve D1 intersect at the equilibrium point.
+      </div>
+
+      <div class="controls" id="main-controls">
+        <button class="btn btn-primary" id="btn-next" aria-label="Advance to next stage of market adjustment">
+          Next Stage →
+        </button>
+        <button class="btn btn-secondary" id="btn-play" aria-label="Play automatic animation through all stages" aria-pressed="false">
+          ▶ Auto Play
+        </button>
+        <button class="btn btn-secondary" id="btn-reset" aria-label="Reset model to initial equilibrium">
+          ↺ Reset
+        </button>
+      </div>
+
+      <div class="speed-row">
+        <label for="speed-slider">Animation speed:</label>
+        <input type="range" id="speed-slider" min="1" max="5" value="3"
+          aria-valuemin="1" aria-valuemax="5" aria-valuenow="3">
+        <span class="speed-val" id="speed-val" aria-live="polite">3×</span>
+      </div>
+
+      <p class="kbd-hint" aria-label="Keyboard shortcuts">
+        Keyboard shortcuts:
+        <kbd>→</kbd> Next stage &nbsp;
+        <kbd>Space</kbd> Play/Pause &nbsp;
+        <kbd>R</kbd> Reset
+      </p>
+    </section>
+
+    <!-- SIDE PANEL -->
+    <aside class="side" aria-label="Market metrics and information">
+
+      <section class="card" aria-labelledby="metrics-heading">
+        <h2 id="metrics-heading">Live Market Data</h2>
+        <div class="metric-grid" role="list">
+          <div class="metric" role="listitem">
+            <span class="metric-label" id="lbl-price">Market Price</span>
+            <span class="metric-value" id="mv-price" aria-labelledby="lbl-price" aria-live="polite" aria-atomic="true">$15.00</span>
+          </div>
+          <div class="metric" role="listitem">
+            <span class="metric-label" id="lbl-qd">Qty Demanded</span>
+            <span class="metric-value" id="mv-qd" aria-labelledby="lbl-qd" aria-live="polite" aria-atomic="true">1.50M tons</span>
+          </div>
+          <div class="metric" role="listitem">
+            <span class="metric-label" id="lbl-qs">Qty Supplied</span>
+            <span class="metric-value" id="mv-qs" aria-labelledby="lbl-qs" aria-live="polite" aria-atomic="true">1.50M tons</span>
+          </div>
+          <div class="metric" role="listitem">
+            <span class="metric-label" id="lbl-short">Shortage</span>
+            <span class="metric-value" id="mv-short" aria-labelledby="lbl-short" aria-live="polite" aria-atomic="true">None</span>
+          </div>
+          <div class="metric" role="listitem">
+            <span class="metric-label" id="lbl-neq">New Eq. Price</span>
+            <span class="metric-value" id="mv-neq" aria-labelledby="lbl-neq" aria-live="polite" aria-atomic="true">—</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="legend-heading">
+        <h2 id="legend-heading">Legend</h2>
+        <div class="legend" role="list">
+          <div class="legend-item" role="listitem">
+            <div class="legend-swatch" style="background:#22d3ee" aria-hidden="true"></div>
+            <span>Supply curve (S)</span>
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-swatch" style="background:#fb923c" aria-hidden="true"></div>
+            <span>Original demand (D₁)</span>
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-swatch" style="background:#ef4444" aria-hidden="true"></div>
+            <span>New demand (D₂)</span>
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-swatch" style="background:#86efac" aria-hidden="true"></div>
+            <span>Equilibrium point</span>
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-swatch" style="background:#fbbf24" aria-hidden="true"></div>
+            <span>Shortage gap</span>
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-swatch" style="background:#a78bfa" aria-hidden="true"></div>
+            <span>Price reference line</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="exp-heading">
+        <h2 id="exp-heading">What's Happening</h2>
+        <div id="explainer" aria-live="polite" aria-atomic="true">
+          <p><span class="tag tag-price">Stage 1</span> The steak market begins at <strong>equilibrium</strong>. At a price of <strong>$15</strong>, quantity supplied equals quantity demanded at <strong>1.5 million tons</strong>. No shortage or surplus exists.</p>
+        </div>
+      </section>
+
+    </aside>
+  </div>
+</div>
+
+<script>
+// ── GEOMETRY ──────────────────────────────────
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const M = { top: 44, right: 64, bottom: 68, left: 80 };
+let W, H, gW, gH;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(dpr, dpr);
+  W = rect.width; H = rect.height;
+  gW = W - M.left - M.right;
+  gH = H - M.top  - M.bottom;
+  draw();
+}
+
+// ── MARKET MATH ───────────────────────────────
+// Price axis $0–$30, Qty axis 0–3M tons
+// Supply:  P = 5 + 6.667Q  → equilibrium at (1.5, 15)
+// D1:      P = 25 - 6.667Q → equilibrium at (1.5, 15)
+// D2:      P = 33 - 6.667Q → new eq ~(2.1, $19)
+const S_INT=5, S_SLP=6.667, D1_INT=25, D1_SLP=6.667, D2_INT=33, D2_SLP=6.667;
+const P_MIN=0, P_MAX=30, Q_MIN=0, Q_MAX=3;
+const EQ1 = { p:15, q:1.5 };
+const EQ2 = { p:(S_INT+D2_INT)/2, q:(D2_INT-S_INT)/(2*S_SLP) };
+const SHORT_QD = (D2_INT-15)/D2_SLP;
+const SHORT_QS = (15-S_INT)/S_SLP;
+
+function xC(q) { return M.left + (q-Q_MIN)/(Q_MAX-Q_MIN)*gW; }
+function yC(p) { return M.top  + (1-(p-P_MIN)/(P_MAX-P_MIN))*gH; }
+
+// ── ANIMATED STATE ───────────────────────────
+let stage=0, animating=false, autoPlay=false, autoTimer=null, speed=3;
+let cur = { d2Alpha:0, shortAlpha:0, priceT:0, eq2Alpha:0, arrowT:0 };
+
+// ── STAGE DATA ────────────────────────────────
+const STAGES = [
+  {
+    desc: `Stage 1 of 5 — Initial equilibrium. Price = $15.00. Quantity supplied and demanded are both 1.50 million tons of steak. Supply and demand curves intersect at equilibrium point E1.`,
+    explain: `<p><span class="tag tag-price">Stage 1</span> The steak market begins at <strong>equilibrium</strong>. At a price of <strong>$15</strong>, quantity supplied equals quantity demanded at <strong>1.5 million tons</strong>. No shortage or surplus exists.</p>`,
+    metrics: { price:15, qd:1.50, qs:1.50, short:null, neq:null },
+    animate: ()=>{ cur={d2Alpha:0,shortAlpha:0,priceT:0,eq2Alpha:0,arrowT:0}; }
+  },
+  {
+    desc: `Stage 2 of 5 — Demand increases. The demand curve shifts right from D1 to D2, representing consumers wanting more steak at every price. Shift arrows show the rightward movement.`,
+    explain: `<p><span class="tag tag-demand">Stage 2</span> <strong>Demand increases</strong> — the demand curve shifts right from D₁ to D₂. Consumers want more steak at every price level. This could be caused by rising incomes, changing tastes, or a substitute becoming more expensive.</p>`,
+    metrics: { price:15, qd:SHORT_QD, qs:SHORT_QS, short:null, neq:null },
+    animate: (t)=>{ cur.d2Alpha=t; cur.arrowT=t; }
+  },
+  {
+    desc: `Stage 3 of 5 — Shortage appears. At the original price of $15, quantity demanded is now ${SHORT_QD.toFixed(2)} million tons but quantity supplied is only ${SHORT_QS.toFixed(2)} million tons. The shortage gap is ${(SHORT_QD-SHORT_QS).toFixed(2)} million tons.`,
+    explain: `<p><span class="tag tag-short">Stage 3</span> A <strong>shortage</strong> appears. At the old price of $15, quantity demanded under D₂ (<strong>${SHORT_QD.toFixed(1)}M tons</strong>) greatly exceeds quantity supplied (<strong>${SHORT_QS.toFixed(1)}M tons</strong>). The gap is <strong>${(SHORT_QD-SHORT_QS).toFixed(1)}M tons</strong>. Buyers compete for limited supply.</p>`,
+    metrics: { price:15, qd:SHORT_QD, qs:SHORT_QS, short:SHORT_QD-SHORT_QS, neq:null },
+    animate: (t)=>{ cur.shortAlpha=t; }
+  },
+  {
+    desc: `Stage 4 of 5 — Price rises. The shortage creates upward pressure. Market price climbs from $15.00 toward the new equilibrium of $${EQ2.p.toFixed(2)}. Quantity supplied increases and quantity demanded falls along their respective curves, closing the shortage.`,
+    explain: `<p><span class="tag tag-price">Stage 4</span> <strong>Price rises</strong>. Shortage pressure pushes the price upward. As price rises: suppliers increase quantity supplied (move up S) and consumers reduce quantity demanded (move up D₂). The gap closes.</p>`,
+    metrics: { price:null, qd:null, qs:null, short:"Closing…", neq:EQ2.p },
+    animate: (t)=>{ cur.priceT=t; cur.shortAlpha=Math.max(0,1-t*1.2); }
+  },
+  {
+    desc: `Stage 5 of 5 — New equilibrium reached. Price has risen to $${EQ2.p.toFixed(2)}. Quantity is now ${EQ2.q.toFixed(2)} million tons at E2, where supply S and new demand D2 intersect. The shortage is fully resolved.`,
+    explain: `<p><span class="tag tag-price">Stage 5</span> <strong>New equilibrium</strong> at E₂. Price has risen to <strong>$${EQ2.p.toFixed(2)}</strong> and quantity settles at <strong>${EQ2.q.toFixed(2)}M tons</strong>. Compared to original: quantity demanded <em>rose</em> along D₂, quantity supplied <em>rose</em> along S — but at a higher price. Shortage is eliminated.</p>`,
+    metrics: { price:EQ2.p, qd:EQ2.q, qs:EQ2.q, short:null, neq:EQ2.p },
+    animate: (t)=>{ cur.priceT=1; cur.eq2Alpha=t; cur.shortAlpha=0; }
+  }
+];
+
+// ── ANIMATION ENGINE ─────────────────────────
+let rafId=null, startTime=null;
+const DURATIONS = [2000,1400,800,450,250];
+
+function animateTo(s) {
+  if (rafId) cancelAnimationFrame(rafId);
+  animating=true; startTime=null;
+  const dur = DURATIONS[speed-1];
+  const stage_data = STAGES[s];
+  function tick(ts) {
+    if (!startTime) startTime=ts;
+    const raw = Math.min((ts-startTime)/dur, 1);
+    const t = raw<0.5 ? 2*raw*raw : -1+(4-2*raw)*raw;
+    stage_data.animate(t);
+    draw();
+    if (raw < 1) {
+      rafId = requestAnimationFrame(tick);
+    } else {
+      animating=false; rafId=null;
+      updateMetrics(s);
+      if (autoPlay && stage < STAGES.length-1) {
+        autoTimer = setTimeout(()=>{ stage++; updatePills(); animateTo(stage); }, 1300);
+      } else if (autoPlay) {
+        autoPlay=false;
+        document.getElementById('btn-play').textContent='▶ Auto Play';
+        document.getElementById('btn-play').setAttribute('aria-pressed','false');
+      }
+    }
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+// ── DRAW ─────────────────────────────────────
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  drawGrid();
+  drawAxes();
+  drawAxisLabels();
+
+  // Supply
+  drawCurve(supplyPts(), '#22d3ee', 2.5, 1);
+  // D1
+  drawCurve(d1Pts(), '#fb923c', 2.5, 1);
+  // D2 (fades in)
+  if (cur.d2Alpha > 0) {
+    drawCurve(d2Pts(), '#ef4444', 2.5, cur.d2Alpha);
+    if (cur.arrowT > 0) drawShiftArrows(cur.d2Alpha * cur.arrowT);
+  }
+  // Shortage bracket
+  if (cur.shortAlpha > 0) drawShortageBracket(cur.shortAlpha);
+  // Rising price line
+  if (cur.priceT > 0) drawPriceLine(cur.priceT);
+  // E1 dot
+  drawEqDot(xC(EQ1.q), yC(EQ1.p), '#86efac', 1, 'E\u2081');
+  // E2 dot
+  if (cur.eq2Alpha > 0) drawEqDot(xC(EQ2.q), yC(EQ2.p), '#86efac', cur.eq2Alpha, 'E\u2082');
+  // Labels
+  drawCurveLabels();
+}
+
+function supplyPts() {
+  const pts=[];
+  for(let q=Q_MIN;q<=Q_MAX;q+=0.05) {
+    const p=S_INT+S_SLP*q;
+    if(p>=P_MIN&&p<=P_MAX) pts.push({x:xC(q),y:yC(p)});
+  }
+  return pts;
+}
+function d1Pts() {
+  const pts=[];
+  for(let q=Q_MIN;q<=Q_MAX;q+=0.05){
+    const p=D1_INT-D1_SLP*q;
+    if(p>=P_MIN&&p<=P_MAX) pts.push({x:xC(q),y:yC(p)});
+  }
+  return pts;
+}
+function d2Pts() {
+  const pts=[];
+  for(let q=Q_MIN;q<=Q_MAX;q+=0.05){
+    const p=D2_INT-D2_SLP*q;
+    if(p>=P_MIN&&p<=P_MAX) pts.push({x:xC(q),y:yC(p)});
+  }
+  return pts;
+}
+
+function drawCurve(pts, color, lw, alpha) {
+  if(!pts.length) return;
+  ctx.save();
+  ctx.globalAlpha=alpha; ctx.strokeStyle=color;
+  ctx.lineWidth=lw; ctx.lineJoin='round';
+  ctx.beginPath();
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.stroke(); ctx.restore();
+}
+
+function drawEqDot(cx, cy, color, alpha, label) {
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  const g=ctx.createRadialGradient(cx,cy,2,cx,cy,14);
+  g.addColorStop(0,color+'55'); g.addColorStop(1,'transparent');
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fill();
+  ctx.font=`bold 11px 'Space Mono',monospace`;
+  ctx.fillText(label,cx+8,cy-8);
+  ctx.restore();
+}
+
+function drawShiftArrows(alpha) {
+  [10,15,20].forEach(p=>{
+    const q1=(D1_INT-p)/D1_SLP, q2=(D2_INT-p)/D2_SLP;
+    if(q1<0||q2>Q_MAX) return;
+    const x1=xC(q1), x2=xC(q1+(q2-q1)*alpha), y=yC(p);
+    drawArrow(x1,y,x2,y,'#ef4444',alpha*0.85);
+  });
+}
+
+function drawArrow(x1,y1,x2,y2,color,alpha) {
+  ctx.save();
+  ctx.globalAlpha=alpha; ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), hs=7;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hs*Math.cos(a-0.4),y2-hs*Math.sin(a-0.4));
+  ctx.lineTo(x2-hs*Math.cos(a+0.4),y2-hs*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function drawShortageBracket(alpha) {
+  const y=yC(15), x1=xC(SHORT_QS), x2=xC(SHORT_QD);
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineWidth=1.5;
+  [x1,x2].forEach(x=>{
+    ctx.beginPath(); ctx.moveTo(x,y-8); ctx.lineTo(x,y+8); ctx.stroke();
+  });
+  ctx.fillStyle='#fbbf24';
+  ctx.font=`bold 10px 'Space Mono',monospace`;
+  ctx.textAlign='center';
+  ctx.fillText('SHORTAGE',(x1+x2)/2,y-12);
+  ctx.restore();
+}
+
+function drawPriceLine(t) {
+  const p=EQ1.p+(EQ2.p-EQ1.p)*t;
+  const y=yC(p);
+  ctx.save();
+  ctx.strokeStyle='#a78bfa'; ctx.lineWidth=1.5;
+  ctx.setLineDash([5,4]); ctx.globalAlpha=0.75;
+  ctx.beginPath(); ctx.moveTo(M.left,y); ctx.lineTo(W-M.right,y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#a78bfa'; ctx.globalAlpha=1;
+  ctx.font=`bold 10px 'Space Mono',monospace`;
+  ctx.textAlign='right';
+  ctx.fillText('$'+p.toFixed(1),M.left-6,y+4);
+  ctx.restore();
+}
+
+function drawGrid() {
+  ctx.save(); ctx.strokeStyle='#1a2e48'; ctx.lineWidth=1;
+  for(let p=0;p<=P_MAX;p+=5){
+    const y=yC(p);
+    ctx.beginPath(); ctx.moveTo(M.left,y); ctx.lineTo(W-M.right,y); ctx.stroke();
+  }
+  for(let q=0;q<=Q_MAX;q+=0.5){
+    const x=xC(q);
+    ctx.beginPath(); ctx.moveTo(x,M.top); ctx.lineTo(x,H-M.bottom); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAxes() {
+  ctx.save(); ctx.strokeStyle='#3a5878'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(M.left,M.top-12); ctx.lineTo(M.left,H-M.bottom); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(M.left,H-M.bottom); ctx.lineTo(W-M.right+12,H-M.bottom); ctx.stroke();
+  ctx.fillStyle='#6b8caf'; ctx.font=`10px 'Space Mono',monospace`;
+  // Y ticks
+  ctx.textAlign='right';
+  for(let p=0;p<=P_MAX;p+=5){
+    const y=yC(p);
+    ctx.beginPath(); ctx.moveTo(M.left-5,y); ctx.lineTo(M.left,y); ctx.stroke();
+    ctx.fillText('$'+p,M.left-8,y+4);
+  }
+  // X ticks
+  ctx.textAlign='center';
+  for(let q=0;q<=Q_MAX;q+=0.5){
+    const x=xC(q);
+    ctx.beginPath(); ctx.moveTo(x,H-M.bottom); ctx.lineTo(x,H-M.bottom+5); ctx.stroke();
+    ctx.fillText(q.toFixed(1),x,H-M.bottom+17);
+  }
+  ctx.restore();
+}
+
+function drawAxisLabels() {
+  ctx.save(); ctx.fillStyle='#7a9cc0';
+  ctx.font=`bold 11px 'Space Mono',monospace`;
+  ctx.save();
+  ctx.translate(15,M.top+gH/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.fillText('PRICE ($)',0,0);
+  ctx.restore();
+  ctx.textAlign='center';
+  ctx.fillText('QUANTITY (millions of tons of steak)',M.left+gW/2,H-8);
+  ctx.restore();
+}
+
+function drawCurveLabels() {
+  ctx.save(); ctx.font=`bold 12px 'Space Mono',monospace`; ctx.textAlign='left';
+  // S label
+  const sEnd=supplyPts().filter(p=>p.y>=M.top).slice(-1)[0];
+  if(sEnd){ ctx.fillStyle='#22d3ee'; ctx.fillText('S',sEnd.x-20,sEnd.y-6); }
+  // D1 label
+  const d1=d1Pts(); const d1e=d1[d1.length-1];
+  if(d1e){ ctx.fillStyle='#fb923c'; ctx.fillText('D\u2081',d1e.x+4,d1e.y+4); }
+  // D2 label
+  if(cur.d2Alpha>0.4){
+    const d2=d2Pts(); const d2e=d2[d2.length-1];
+    if(d2e){ ctx.fillStyle='#ef4444'; ctx.globalAlpha=cur.d2Alpha; ctx.fillText('D\u2082',d2e.x+4,d2e.y+4); }
+  }
+  ctx.restore();
+}
+
+// ── METRICS ───────────────────────────────────
+function updateMetrics(s) {
+  const m=STAGES[s].metrics;
+  const t=cur.priceT;
+  const curP = m.price!==null ? m.price : EQ1.p+(EQ2.p-EQ1.p)*t;
+  const curQD = m.qd!==null ? m.qd : (D2_INT-curP)/D2_SLP;
+  const curQS = m.qs!==null ? m.qs : (curP-S_INT)/S_SLP;
+
+  const set=(id,val,cls)=>{
+    const el=document.getElementById(id);
+    el.textContent=val;
+    el.className='metric-value'+(cls?' '+cls:'');
+  };
+  set('mv-price', s===3?'Rising…':'$'+curP.toFixed(2), s>=3?'up':'');
+  set('mv-qd',    curQD.toFixed(2)+'M tons', s>=1?'up':'');
+  set('mv-qs',    s>=3?curQS.toFixed(2)+'M tons':curQS.toFixed(2)+'M tons', s>=1&&s<3?'down':s>=3?'up':'');
+  set('mv-short', m.short===null?'None':m.short==="Closing…"?'Closing…':m.short.toFixed(2)+'M tons', m.short&&m.short!=='Closing…'?'warn':m.short==='Closing…'?'warn':'');
+  set('mv-neq',   m.neq!==null?'$'+m.neq.toFixed(2):'—', m.neq?'up':'');
+
+  document.getElementById('chart-desc').textContent = STAGES[s].desc;
+  document.getElementById('explainer').innerHTML = STAGES[s].explain;
+}
+
+// ── PILLS ─────────────────────────────────────
+function updatePills() {
+  for(let i=0;i<5;i++){
+    const el=document.getElementById('pill-'+i);
+    el.classList.remove('done');
+    el.removeAttribute('aria-current');
+    if(i<stage) el.classList.add('done');
+    if(i===stage) el.setAttribute('aria-current','step');
+  }
+}
+
+// ── CONTROLS ─────────────────────────────────
+const btnNext=document.getElementById('btn-next');
+const btnPlay=document.getElementById('btn-play');
+const btnReset=document.getElementById('btn-reset');
+
+btnNext.addEventListener('click',()=>{
+  if(animating) return;
+  if(stage<STAGES.length-1){
+    stage++;
+    updatePills();
+    animateTo(stage);
+    btnNext.disabled = stage===STAGES.length-1;
+  }
+});
+
+btnReset.addEventListener('click',()=>{
+  if(rafId) cancelAnimationFrame(rafId);
+  clearTimeout(autoTimer);
+  autoPlay=false; animating=false; stage=0;
+  btnPlay.textContent='▶ Auto Play';
+  btnPlay.setAttribute('aria-pressed','false');
+  btnNext.disabled=false;
+  cur={d2Alpha:0,shortAlpha:0,priceT:0,eq2Alpha:0,arrowT:0};
+  updatePills(); updateMetrics(0); draw();
+});
+
+btnPlay.addEventListener('click',function(){
+  if(animating) return;
+  autoPlay=!autoPlay;
+  this.textContent=autoPlay?'⏸ Pause':'▶ Auto Play';
+  this.setAttribute('aria-pressed',autoPlay?'true':'false');
+  if(autoPlay){
+    if(stage===STAGES.length-1){ btnReset.click(); return; }
+    stage++; updatePills(); animateTo(stage);
+    btnNext.disabled=false;
+  } else {
+    clearTimeout(autoTimer);
+  }
+});
+
+document.getElementById('speed-slider').addEventListener('input',function(){
+  speed=parseInt(this.value);
+  document.getElementById('speed-val').textContent=speed+'×';
+  this.setAttribute('aria-valuenow',speed);
+});
+
+// ── KEYBOARD ─────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='ArrowRight'||e.key==='n') btnNext.click();
+  else if(e.key==='r'||e.key==='R') btnReset.click();
+  else if(e.key===' '||e.key==='p'){ e.preventDefault(); btnPlay.click(); }
+});
+
+// ── INIT ─────────────────────────────────────
+new ResizeObserver(resize).observe(canvas);
+resize();
+updatePills();
+updateMetrics(0);
+</script>
+</body>
+</html>
