@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Honey Market — Supply & Demand Model</title>
+  <meta name="description" content="Interactive supply and demand model for the honey market. Adjust supply and demand curves using sliders and observe market equilibrium changes." />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Tokens ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --amber-deep:  #b45309;
+      --amber:       #d97706;
+      --amber-light: #fbbf24;
+      --amber-pale:  #fef3c7;
+      --amber-ghost: #fffbeb;
+      --honey-dark:  #92400e;
+      --cream:       #fefce8;
+      --bark:        #44200a;
+      --demand:      #dc2626;
+      --demand-new:  #f87171;
+      --supply:      #16a34a;
+      --supply-new:  #4ade80;
+      --eq:          #7c3aed;
+      --eq-new:      #a78bfa;
+      --grid:        rgba(180,83,9,0.12);
+      --shadow:      rgba(68,32,10,0.18);
+      --font-display: 'Playfair Display', serif;
+      --font-mono:    'DM Mono', monospace;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    html { font-size: 16px; }
+    body {
+      background: var(--cream);
+      color: var(--bark);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Layout ── */
+    .page-wrap { max-width: 1060px; margin: 0 auto; }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .header-badge {
+      display: inline-block;
+      background: var(--amber);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: .72rem;
+      letter-spacing: .12em;
+      padding: .25rem .9rem;
+      border-radius: 99px;
+      margin-bottom: .75rem;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      color: var(--honey-dark);
+      line-height: 1.15;
+    }
+    .subtitle {
+      font-size: .95rem;
+      color: var(--amber-deep);
+      margin-top: .4rem;
+      font-weight: 300;
+    }
+
+    /* ── Main Grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 780px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border: 1.5px solid rgba(180,83,9,.18);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px var(--shadow);
+      overflow: hidden;
+    }
+    .card-header {
+      background: var(--amber-ghost);
+      border-bottom: 1.5px solid rgba(180,83,9,.14);
+      padding: .85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .card-header h2 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--honey-dark);
+    }
+    .card-icon { font-size: 1.2rem; }
+    .card-body { padding: 1.25rem; }
+
+    /* ── Canvas ── */
+    #chartCanvas {
+      width: 100%;
+      display: block;
+      border-radius: 8px;
+      background: var(--amber-ghost);
+    }
+
+    /* ── Controls ── */
+    .control-group { margin-bottom: 1.5rem; }
+    .control-group:last-child { margin-bottom: 0; }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: .5rem;
+    }
+    .control-label span {
+      font-size: .85rem;
+      font-weight: 500;
+      color: var(--bark);
+    }
+    .control-value {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--amber-deep);
+      background: var(--amber-pale);
+      border-radius: 4px;
+      padding: .1rem .45rem;
+    }
+
+    /* Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 99px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 4px;
+    }
+
+    .slider-demand {
+      background: linear-gradient(to right, var(--demand) var(--pct,50%), #e5e7eb var(--pct,50%));
+    }
+    .slider-supply {
+      background: linear-gradient(to right, var(--supply) var(--pct,50%), #e5e7eb var(--pct,50%));
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 6px rgba(0,0,0,.22);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    .slider-demand::-webkit-slider-thumb { background: var(--demand); }
+    .slider-supply::-webkit-slider-thumb { background: var(--supply); }
+    input[type=range]::-moz-range-thumb {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 6px rgba(0,0,0,.22);
+      cursor: pointer;
+    }
+    .slider-demand::-moz-range-thumb { background: var(--demand); }
+    .slider-supply::-moz-range-thumb { background: var(--supply); }
+
+    .slider-hint {
+      display: flex;
+      justify-content: space-between;
+      font-size: .7rem;
+      color: var(--amber-deep);
+      margin-top: .25rem;
+      font-family: var(--font-mono);
+    }
+
+    /* ── Reset Button ── */
+    .btn-reset {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      width: 100%;
+      padding: .65rem;
+      background: var(--amber-pale);
+      color: var(--honey-dark);
+      border: 1.5px solid var(--amber-light);
+      border-radius: 9px;
+      font-family: var(--font-body);
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      margin-top: 1rem;
+    }
+    .btn-reset:hover { background: var(--amber-light); border-color: var(--amber); }
+    .btn-reset:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+    /* ── Market Status Panel ── */
+    #statusPanel {
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-top: 1.25rem;
+      border: 1.5px solid transparent;
+      transition: background .4s, border-color .4s;
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+    #statusPanel.equilibrium {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+    }
+    #statusPanel.shortage {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #7f1d1d;
+    }
+    #statusPanel.surplus {
+      background: #fff7ed;
+      border-color: #fdba74;
+      color: #7c2d12;
+    }
+    #statusPanel .status-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: .35rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    #statusPanel .status-steps {
+      font-size: .8rem;
+      opacity: .9;
+    }
+    #statusPanel .status-steps li { margin-left: 1.1rem; }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem 1.1rem;
+      font-size: .78rem;
+      margin-top: 1rem;
+      font-family: var(--font-mono);
+    }
+    .legend-item { display: flex; align-items: center; gap: .35rem; }
+    .legend-dot {
+      width: 12px; height: 4px; border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: .7rem;
+      margin-top: 1.25rem;
+    }
+    .stat-box {
+      background: var(--amber-ghost);
+      border: 1px solid rgba(180,83,9,.15);
+      border-radius: 9px;
+      padding: .6rem .75rem;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: .68rem;
+      color: var(--amber-deep);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--honey-dark);
+      margin-top: .1rem;
+    }
+
+    /* ── Skip nav (a11y) ── */
+    .skip-link {
+      position: absolute;
+      left: -999px;
+      top: auto;
+      width: 1px; height: 1px;
+      overflow: hidden;
+    }
+    .skip-link:focus {
+      left: 1rem; top: 1rem;
+      width: auto; height: auto;
+      padding: .5rem 1rem;
+      background: var(--amber);
+      color: #fff;
+      border-radius: 6px;
+      z-index: 9999;
+      font-size: .9rem;
+    }
+
+    /* ── Responsive fine-tune ── */
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="#controls-region" class="skip-link">Skip to controls</a>
+
+<div class="page-wrap" role="main">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="header-badge" aria-hidden="true">🍯 Microeconomics Lab</div>
+    <h1>The Honey Market</h1>
+    <p class="subtitle">Supply &amp; Demand — Interactive Equilibrium Model</p>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- ── Chart Card ── -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon" aria-hidden="true">📈</span>
+        <h2>Market Graph</h2>
+      </div>
+      <div class="card-body">
+        <canvas id="chartCanvas"
+                role="img"
+                aria-label="Supply and demand graph for the honey market. Curves update as you adjust the sliders."
+                width="640" height="480">
+          Your browser does not support the canvas element.
+        </canvas>
+
+        <!-- Legend -->
+        <div class="legend" role="list" aria-label="Graph legend">
+          <div class="legend-item" role="listitem">
+            <div class="legend-dot" style="background:var(--demand)"></div>Demand (D₁)
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-dot" style="background:var(--demand-new);opacity:.7"></div>Demand (D₂)
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-dot" style="background:var(--supply)"></div>Supply (S₁)
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-dot" style="background:var(--supply-new);opacity:.7"></div>Supply (S₂)
+          </div>
+          <div class="legend-item" role="listitem">
+            <div class="legend-dot" style="background:var(--eq)"></div>Equilibrium
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" role="region" aria-label="Market statistics">
+          <div class="stat-box">
+            <div class="stat-label">Eq. Price</div>
+            <div class="stat-value" id="statPrice" aria-live="polite" aria-atomic="true">$3.00</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Eq. Quantity</div>
+            <div class="stat-value" id="statQty" aria-live="polite" aria-atomic="true">50 lbs</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Market State</div>
+            <div class="stat-value" id="statState" aria-live="polite" aria-atomic="true">Equilibrium</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Controls Card ── -->
+    <aside id="controls-region" aria-label="Market adjustment controls">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon" aria-hidden="true">🎛️</span>
+          <h2>Adjust the Market</h2>
+        </div>
+        <div class="card-body">
+
+          <!-- Demand slider -->
+          <div class="control-group">
+            <div class="control-label">
+              <span id="demandLabel">Demand Shift</span>
+              <span class="control-value" id="demandVal" aria-hidden="true">0</span>
+            </div>
+            <input type="range"
+                   id="demandSlider"
+                   class="slider-demand"
+                   min="-30" max="30" value="0" step="1"
+                   aria-labelledby="demandLabel"
+                   aria-describedby="demandHintText"
+                   aria-valuemin="-30" aria-valuemax="30" aria-valuenow="0"
+                   style="--pct:50%" />
+            <div class="slider-hint">
+              <span>⬅ Decrease</span>
+              <span>Increase ➡</span>
+            </div>
+            <p id="demandHintText" style="font-size:.75rem;color:var(--amber-deep);margin-top:.3rem;">
+              Shifts the demand curve left (less demand) or right (more demand).
+            </p>
+          </div>
+
+          <!-- Supply slider -->
+          <div class="control-group">
+            <div class="control-label">
+              <span id="supplyLabel">Supply Shift</span>
+              <span class="control-value" id="supplyVal" aria-hidden="true">0</span>
+            </div>
+            <input type="range"
+                   id="supplySlider"
+                   class="slider-supply"
+                   min="-30" max="30" value="0" step="1"
+                   aria-labelledby="supplyLabel"
+                   aria-describedby="supplyHintText"
+                   aria-valuemin="-30" aria-valuemax="30" aria-valuenow="0"
+                   style="--pct:50%" />
+            <div class="slider-hint">
+              <span>⬅ Decrease</span>
+              <span>Increase ➡</span>
+            </div>
+            <p id="supplyHintText" style="font-size:.75rem;color:var(--amber-deep);margin-top:.3rem;">
+              Shifts the supply curve left (less supply) or right (more supply).
+            </p>
+          </div>
+
+          <button class="btn-reset" id="resetBtn" aria-label="Reset all sliders to initial equilibrium">
+            ↺ Reset to Equilibrium
+          </button>
+
+          <!-- Market Status Panel -->
+          <div id="statusPanel" class="equilibrium" role="status" aria-live="polite" aria-atomic="true">
+            <div class="status-title">✅ Market in Equilibrium</div>
+            <div class="status-steps">
+              Price = $3.00 | Quantity = 50 lbs<br>
+              Quantity Demanded = Quantity Supplied
+            </div>
+          </div>
+
+        </div><!-- /card-body -->
+      </div><!-- /card -->
+
+      <!-- ── Explainer Card ── -->
+      <div class="card" style="margin-top:1.25rem;">
+        <div class="card-header">
+          <span class="card-icon" aria-hidden="true">📚</span>
+          <h2>How to Read This</h2>
+        </div>
+        <div class="card-body" style="font-size:.82rem;line-height:1.7;color:var(--bark);">
+          <p><strong>Demand (D)</strong> slopes downward — as price rises, buyers want less honey.</p>
+          <p style="margin-top:.6rem"><strong>Supply (S)</strong> slopes upward — as price rises, beekeepers offer more honey.</p>
+          <p style="margin-top:.6rem"><strong>Equilibrium ●</strong> is where the curves intersect — the market-clearing price and quantity.</p>
+          <p style="margin-top:.6rem"><strong>Shortage</strong>: Qd &gt; Qs → price rises → Qd↓, Qs↑ → new equilibrium.</p>
+          <p style="margin-top:.6rem"><strong>Surplus</strong>: Qs &gt; Qd → price falls → Qd↑, Qs↓ → new equilibrium.</p>
+        </div>
+      </div>
+
+    </aside>
+  </div><!-- /main-grid -->
+</div><!-- /page-wrap -->
+
+<script>
+  /* ─────────────────────────────────────────
+     Model Parameters
+     Price axis: $0 – $7 (7 units)
+     Qty axis:   0  – 100 lbs
+     Initial equilibrium: P* = $3, Q* = 50
+
+     Demand: Qd = 110 - 20P  → at P=3, Qd=50 ✓
+     Supply: Qs = 10 + 40/3*P → linear, at P=3, Qs=50 ✓
+             simpler: Qs = -10 + 20P  → at P=3, Qs=50 ✓
+
+     Slope of demand (ΔP/ΔQd): P = (110 - Qd)/20 = 5.5 - 0.05*Qd
+     Slope of supply          : P = (Qs + 10)/20  = 0.5 + 0.05*Qs
+  ─────────────────────────────────────────── */
+
+  const PRICE_MAX  = 7;
+  const QTY_MAX    = 100;
+  const BASE_P     = 3;   // initial equilibrium price
+  const BASE_Q     = 50;  // initial equilibrium qty
+
+  // Linear demand: Qd = a - b*P  (base: a=110, b=20)
+  // Linear supply: Qs = c + d*P  (base: c=-10, d=20)
+  const BASE = { a: 110, b: 20, c: -10, d: 20 };
+
+  const canvas  = document.getElementById('chartCanvas');
+  const ctx     = canvas.getContext('2d');
+  const W       = canvas.width;
+  const H       = canvas.height;
+
+  const PAD = { top: 30, right: 28, bottom: 58, left: 60 };
+  const CW  = W - PAD.left - PAD.right;
+  const CH  = H - PAD.top  - PAD.bottom;
+
+  // CSS colours (matching CSS variables, resolved here for canvas)
+  const C = {
+    demand:    '#dc2626',
+    demandNew: '#f87171',
+    supply:    '#16a34a',
+    supplyNew: '#4ade80',
+    eq:        '#7c3aed',
+    eqNew:     '#a78bfa',
+    grid:      'rgba(180,83,9,0.10)',
+    axis:      'rgba(68,32,10,0.55)',
+    bg:        '#fffbeb',
+    arrow:     '#92400e',
+    shortage:  '#dc2626',
+    surplus:   '#d97706',
+  };
+
+  /* coordinate helpers */
+  function xOf(q) { return PAD.left + (q / QTY_MAX) * CW; }
+  function yOf(p) { return PAD.top  + (1 - p / PRICE_MAX) * CH; }
+
+  /* equilibrium: a - b*P = c + d*P  →  P = (a-c)/(b+d) */
+  function equilibrium(a, b, c, d) {
+    const P = (a - c) / (b + d);
+    const Q = a - b * P;
+    return { P, Q };
+  }
+
+  /* map slider value (-30..30) to intercept delta */
+  function demandShift(v) { return v * 1.0; }  // shifts 'a'
+  function supplyShift(v) { return v * 1.0; }  // shifts 'c'
+
+  /* draw one curve (P as function of Q) between Q=0 and Q=QTY_MAX */
+  function drawCurve(pOfQ, color, width, dash = []) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = width;
+    ctx.setLineDash(dash);
+    for (let q = 0; q <= QTY_MAX; q += 0.5) {
+      const p = pOfQ(q);
+      const x = xOf(q);
+      const y = yOf(p);
+      if (q === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /* draw equilibrium dot */
+  function drawDot(P, Q, color, label) {
+    const x = xOf(Q), y = yOf(P);
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // label
+    ctx.fillStyle = color;
+    ctx.font = '600 11px DM Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, x + 10, y - 4);
+  }
+
+  /* draw dashed guide lines to axes */
+  function drawGuides(P, Q, color) {
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(xOf(Q), yOf(P));
+    ctx.lineTo(xOf(Q), yOf(0));
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(xOf(Q), yOf(P));
+    ctx.lineTo(xOf(0), yOf(P));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  /* draw shortage/surplus band */
+  function drawBand(type, origP, newEq, a, b, c, d) {
+    // At original price, find Qd and Qs on NEW curves
+    const Qd = a - b * origP;
+    const Qs = c + d * origP;
+    const xQd = xOf(Math.max(0, Math.min(QTY_MAX, Qd)));
+    const xQs = xOf(Math.max(0, Math.min(QTY_MAX, Qs)));
+    const yP  = yOf(origP);
+
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = type === 'shortage' ? C.shortage : C.surplus;
+    const xL = Math.min(xQd, xQs);
+    const xR = Math.max(xQd, xQs);
+    ctx.fillRect(xL, yP - 5, xR - xL, 10);
+    ctx.globalAlpha = 1;
+
+    // Bracket label
+    ctx.fillStyle = type === 'shortage' ? C.shortage : C.surplus;
+    ctx.font = '600 10px DM Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(type === 'shortage' ? 'SHORTAGE' : 'SURPLUS', (xL + xR) / 2, yP - 9);
+  }
+
+  /* draw arrow showing equilibrium shift */
+  function drawShiftArrow(P1, Q1, P2, Q2) {
+    const x1 = xOf(Q1), y1 = yOf(P1);
+    const x2 = xOf(Q2), y2 = yOf(P2);
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len < 8) return;
+    ctx.beginPath();
+    ctx.strokeStyle = C.arrow;
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([3, 3]);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // arrowhead
+    const angle = Math.atan2(dy, dx);
+    ctx.beginPath();
+    ctx.fillStyle = C.arrow;
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 9*Math.cos(angle-0.4), y2 - 9*Math.sin(angle-0.4));
+    ctx.lineTo(x2 - 9*Math.cos(angle+0.4), y2 - 9*Math.sin(angle+0.4));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /* main draw */
+  function draw() {
+    const dv = +document.getElementById('demandSlider').value;
+    const sv = +document.getElementById('supplySlider').value;
+
+    const a = BASE.a + demandShift(dv);
+    const b = BASE.b;
+    const c = BASE.c + supplyShift(sv);
+    const d = BASE.d;
+
+    const base = equilibrium(BASE.a, BASE.b, BASE.c, BASE.d);
+    const curr = equilibrium(a, b, c, d);
+
+    // ── clear
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── grid
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 1;
+    for (let p = 0; p <= PRICE_MAX; p++) {
+      ctx.beginPath();
+      ctx.moveTo(PAD.left, yOf(p));
+      ctx.lineTo(PAD.left + CW, yOf(p));
+      ctx.stroke();
+    }
+    for (let q = 0; q <= QTY_MAX; q += 10) {
+      ctx.beginPath();
+      ctx.moveTo(xOf(q), PAD.top);
+      ctx.lineTo(xOf(q), PAD.top + CH);
+      ctx.stroke();
+    }
+
+    // ── axes
+    ctx.strokeStyle = C.axis;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, PAD.top);
+    ctx.lineTo(PAD.left, PAD.top + CH);
+    ctx.lineTo(PAD.left + CW, PAD.top + CH);
+    ctx.stroke();
+
+    // axis labels
+    ctx.fillStyle = C.axis;
+    ctx.font = '500 11px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Quantity of Honey (lbs)', PAD.left + CW / 2, H - 8);
+    ctx.save();
+    ctx.translate(14, PAD.top + CH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Price per lb ($)', 0, 0);
+    ctx.restore();
+
+    // tick labels
+    ctx.font = '400 10px DM Mono, monospace';
+    ctx.fillStyle = C.axis;
+    for (let p = 0; p <= PRICE_MAX; p++) {
+      ctx.textAlign = 'right';
+      ctx.fillText('$' + p, PAD.left - 6, yOf(p) + 4);
+    }
+    for (let q = 0; q <= QTY_MAX; q += 10) {
+      ctx.textAlign = 'center';
+      ctx.fillText(q, xOf(q), PAD.top + CH + 16);
+    }
+
+    // ── base curves (solid, slightly faded if shifted)
+    const shifted = (dv !== 0 || sv !== 0);
+    // Base demand: P = (a_base - Qd) / b
+    drawCurve(q => (BASE.a - q) / BASE.b, C.demand, shifted ? 2 : 2.5, shifted ? [6,3] : []);
+    // Base supply: P = (Qs - c_base) / d
+    drawCurve(q => (q - BASE.c) / BASE.d, C.supply, shifted ? 2 : 2.5, shifted ? [6,3] : []);
+
+    if (shifted) {
+      // New curves (solid)
+      drawCurve(q => (a - q) / b, C.demandNew, 2.5);
+      drawCurve(q => (q - c) / d, C.supplyNew, 2.5);
+    }
+
+    // ── shortage/surplus band at original price
+    if (shifted) {
+      const marketState = getState(curr.P, curr.Q, base.P, base.Q, a, b, c, d);
+      if (marketState !== 'equilibrium') {
+        drawBand(marketState, base.P, curr, a, b, c, d);
+      }
+    }
+
+    // ── guide lines
+    if (shifted) {
+      drawGuides(base.P, base.Q, C.eq + '88');
+      drawGuides(curr.P, curr.Q, C.eqNew);
+      drawShiftArrow(base.P, base.Q, curr.P, curr.Q);
+    } else {
+      drawGuides(base.P, base.Q, C.eq);
+    }
+
+    // ── equilibrium dots
+    if (shifted) {
+      drawDot(base.P, base.Q, C.eq, `E₁ ($${base.P.toFixed(2)}, ${Math.round(base.Q)})`);
+      if (curr.P > 0 && curr.Q > 0 && curr.P < PRICE_MAX && curr.Q < QTY_MAX) {
+        drawDot(curr.P, curr.Q, C.eqNew, `E₂ ($${curr.P.toFixed(2)}, ${Math.round(curr.Q)})`);
+      }
+    } else {
+      drawDot(base.P, base.Q, C.eq, `E* ($${base.P.toFixed(2)}, ${Math.round(base.Q)})`);
+    }
+
+    // ── update stat boxes + status panel
+    updateUI(curr, base, dv, sv, a, b, c, d);
+  }
+
+  function getState(P, Q, baseP, baseQ, a, b, c, d) {
+    const THRESH = 0.05;
+    if (Math.abs(P - baseP) < THRESH && Math.abs(Q - baseQ) < THRESH) return 'equilibrium';
+    // At original price, Qd vs Qs on new curves
+    const Qd_at_base = a - b * baseP;
+    const Qs_at_base = c + d * baseP;
+    if (Qd_at_base > Qs_at_base + 0.5) return 'shortage';
+    if (Qs_at_base > Qd_at_base + 0.5) return 'surplus';
+    return 'equilibrium';
+  }
+
+  function updateUI(curr, base, dv, sv, a, b, c, d) {
+    const panel   = document.getElementById('statusPanel');
+    const statP   = document.getElementById('statPrice');
+    const statQ   = document.getElementById('statQty');
+    const statSt  = document.getElementById('statState');
+
+    const P = Math.max(0, Math.min(PRICE_MAX, curr.P));
+    const Q = Math.max(0, Math.min(QTY_MAX,  curr.Q));
+    statP.textContent  = '$' + P.toFixed(2);
+    statQ.textContent  = Math.round(Q) + ' lbs';
+
+    const state = (dv === 0 && sv === 0) ? 'equilibrium' : getState(curr.P, curr.Q, base.P, base.Q, a, b, c, d);
+
+    panel.className = state;
+    statSt.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+
+    if (state === 'equilibrium') {
+      panel.innerHTML = `
+        <div class="status-title">✅ Market in Equilibrium</div>
+        <div class="status-steps">
+          Price = $${P.toFixed(2)} | Quantity = ${Math.round(Q)} lbs<br>
+          Quantity Demanded = Quantity Supplied
+        </div>`;
+    } else if (state === 'shortage') {
+      const Qd = Math.max(0, a - b * base.P);
+      const Qs = Math.max(0, c + d * base.P);
+      panel.innerHTML = `
+        <div class="status-title">🔴 Shortage Detected</div>
+        <div class="status-steps">
+          At $${base.P.toFixed(2)}: Qd = ${Math.round(Qd)} lbs &gt; Qs = ${Math.round(Qs)} lbs<br>
+          <ul>
+            <li>↑ Price rises toward new equilibrium</li>
+            <li>↓ Quantity demanded falls</li>
+            <li>↑ Quantity supplied rises</li>
+            <li>→ New equilibrium: $${P.toFixed(2)}, ${Math.round(Q)} lbs</li>
+          </ul>
+        </div>`;
+    } else {
+      const Qd = Math.max(0, a - b * base.P);
+      const Qs = Math.max(0, c + d * base.P);
+      panel.innerHTML = `
+        <div class="status-title">🟠 Surplus Detected</div>
+        <div class="status-steps">
+          At $${base.P.toFixed(2)}: Qs = ${Math.round(Qs)} lbs &gt; Qd = ${Math.round(Qd)} lbs<br>
+          <ul>
+            <li>↓ Price falls toward new equilibrium</li>
+            <li>↑ Quantity demanded rises</li>
+            <li>↓ Quantity supplied falls</li>
+            <li>→ New equilibrium: $${P.toFixed(2)}, ${Math.round(Q)} lbs</li>
+          </ul>
+        </div>`;
+    }
+  }
+
+  /* ── slider interaction ── */
+  function updateSliderStyle(el) {
+    const min = +el.min, max = +el.max, val = +el.value;
+    const pct = ((val - min) / (max - min)) * 100;
+    el.style.setProperty('--pct', pct + '%');
+    el.setAttribute('aria-valuenow', val);
+  }
+
+  document.getElementById('demandSlider').addEventListener('input', function () {
+    document.getElementById('demandVal').textContent = (this.value > 0 ? '+' : '') + this.value;
+    updateSliderStyle(this);
+    draw();
+  });
+
+  document.getElementById('supplySlider').addEventListener('input', function () {
+    document.getElementById('supplyVal').textContent = (this.value > 0 ? '+' : '') + this.value;
+    updateSliderStyle(this);
+    draw();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    const ds = document.getElementById('demandSlider');
+    const ss = document.getElementById('supplySlider');
+    ds.value = 0; ss.value = 0;
+    document.getElementById('demandVal').textContent = '0';
+    document.getElementById('supplyVal').textContent = '0';
+    updateSliderStyle(ds);
+    updateSliderStyle(ss);
+    draw();
+    ds.focus();
+  });
+
+  // initial render
+  draw();
+</script>
+</body>
+</html>
+
