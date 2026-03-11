@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oyster Market – Supply & Demand Model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & tokens ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f0e8;
+      --paper:     #fffdf7;
+      --ink:       #1a1612;
+      --muted:     #7a7060;
+      --supply:    #2a6b3c;
+      --demand1:   #1a3f6b;
+      --demand2:   #b84a1e;
+      --shortage:  #c0392b;
+      --eq-old:    #1a3f6b;
+      --eq-new:    #b84a1e;
+      --grid:      #e0d8c8;
+      --accent:    #b84a1e;
+      --font-head: 'Playfair Display', Georgia, serif;
+      --font-body: 'Source Sans 3', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 3rem;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    header h1 {
+      font-family: var(--font-head);
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      letter-spacing: .02em;
+      color: var(--ink);
+    }
+    header p {
+      font-size: .95rem;
+      color: var(--muted);
+      margin-top: .4rem;
+      font-weight: 300;
+    }
+
+    /* ── Main layout ─────────────────────────────────────────── */
+    .wrapper {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 2rem;
+      width: 100%;
+      max-width: 1100px;
+    }
+    @media (max-width: 780px) {
+      .wrapper { grid-template-columns: 1fr; }
+    }
+
+    /* ── Chart card ─────────────────────────────────────────── */
+    .chart-card {
+      background: var(--paper);
+      border: 1px solid var(--grid);
+      border-radius: 4px;
+      padding: 1.5rem 1rem 1rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 2px;
+    }
+
+    /* ── Slider panel ───────────────────────────────────────── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+
+    .control-card {
+      background: var(--paper);
+      border: 1px solid var(--grid);
+      border-radius: 4px;
+      padding: 1.4rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+    .control-card h2 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      margin-bottom: .9rem;
+      border-bottom: 1px solid var(--grid);
+      padding-bottom: .5rem;
+    }
+
+    /* slider */
+    .slider-wrap label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .85rem;
+      font-weight: 600;
+      margin-bottom: .5rem;
+      color: var(--ink);
+    }
+    .slider-wrap label span {
+      color: var(--accent);
+      font-size: .9rem;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(to right, var(--demand2) var(--pct, 0%), var(--grid) var(--pct, 0%));
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--demand2);
+      border: 2px solid var(--paper);
+      box-shadow: 0 0 0 2px var(--demand2);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    input[type=range]:focus { outline: 2px solid var(--demand2); outline-offset: 3px; }
+
+    /* hint text */
+    .hint {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: .6rem;
+      line-height: 1.5;
+    }
+
+    /* ── Stats grid ─────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .8rem;
+    }
+    .stat-box {
+      background: var(--bg);
+      border-radius: 4px;
+      padding: .8rem;
+      text-align: center;
+    }
+    .stat-box .label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: .3rem;
+    }
+    .stat-box .value {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+    }
+    .stat-box .delta {
+      font-size: .75rem;
+      margin-top: .15rem;
+      font-weight: 600;
+    }
+    .up   { color: #27ae60; }
+    .down { color: #c0392b; }
+
+    /* ── Adjustment timeline ────────────────────────────────── */
+    .timeline { list-style: none; }
+    .timeline li {
+      display: flex;
+      gap: .8rem;
+      align-items: flex-start;
+      padding: .55rem 0;
+      font-size: .85rem;
+      border-bottom: 1px solid var(--grid);
+      opacity: .35;
+      transition: opacity .4s, color .4s;
+    }
+    .timeline li:last-child { border-bottom: none; }
+    .timeline li.active { opacity: 1; }
+    .step-num {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--grid);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700;
+      color: var(--muted);
+      transition: background .4s, color .4s;
+    }
+    .timeline li.active .step-num {
+      background: var(--accent);
+      color: #fff;
+    }
+    .step-text strong { display: block; font-weight: 600; }
+    .step-text span   { color: var(--muted); font-size: .78rem; }
+
+    /* ── Legend ─────────────────────────────────────────────── */
+    .legend { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; font-size: .8rem; margin-top: .8rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; }
+    .legend-swatch {
+      width: 24px; height: 3px; border-radius: 2px;
+    }
+    .legend-swatch.dashed {
+      background: repeating-linear-gradient(90deg, currentColor 0, currentColor 5px, transparent 5px, transparent 9px);
+    }
+
+    /* ── Skip nav (accessibility) ───────────────────────────── */
+    .skip-link {
+      position: absolute;
+      top: -40px; left: 0;
+      background: var(--accent); color: #fff;
+      padding: .5rem 1rem;
+      font-size: .9rem;
+      border-radius: 0 0 4px 0;
+      transition: top .2s;
+      z-index: 100;
+    }
+    .skip-link:focus { top: 0; }
+
+    /* ── Shortage badge ─────────────────────────────────────── */
+    #shortage-badge {
+      position: absolute;
+      background: var(--shortage);
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: .25rem .6rem;
+      border-radius: 3px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+<a class="skip-link" href="#demand-slider">Skip to demand shift slider</a>
+
+<header>
+  <h1>Oyster Market — Supply &amp; Demand</h1>
+  <p>United States · 900 farming operations (USDA 2023) · quantity measured in millions of pounds · prices per pound of meat</p>
+</header>
+
+<div class="wrapper" role="main">
+
+  <!-- ── Chart ── -->
+  <section class="chart-card" aria-label="Supply and demand graph">
+    <div id="shortage-badge" role="status" aria-live="polite">Shortage</div>
+    <canvas id="chart"
+      width="760" height="580"
+      role="img"
+      aria-label="Supply and demand diagram for the oyster market. Use the slider to shift demand rightward."
+      tabindex="0">
+    </canvas>
+    <div class="legend" aria-label="Chart legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--supply)"></div><span>Supply (S) — 900 farms (USDA 2023)</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--demand1)"></div><span>Original Demand (D₁)</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--demand2)"></div><span>New Demand (D₂)</span></div>
+      <div class="legend-item">
+        <svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="var(--eq-old)" stroke="white" stroke-width="1.5"/></svg>
+        <span>Original Equilibrium (E₁)</span>
+      </div>
+      <div class="legend-item">
+        <svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="var(--eq-new)" stroke="white" stroke-width="1.5"/></svg>
+        <span>New Equilibrium (E₂)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Side panel ── -->
+  <aside class="panel" aria-label="Controls and market data">
+
+    <!-- Slider -->
+    <div class="control-card">
+      <h2>Demand Shift</h2>
+      <div class="slider-wrap">
+        <label for="demand-slider">
+          Shift amount
+          <span id="shift-label">0%</span>
+        </label>
+        <input
+          type="range"
+          id="demand-slider"
+          min="0" max="100" value="0" step="1"
+          aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+          aria-label="Demand shift: 0 = original demand, 100 = maximum rightward shift"
+        />
+      </div>
+      <p class="hint">Drag right to increase demand. Watch the shortage appear, then observe how the market self-corrects to a new equilibrium.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="control-card" aria-label="Market statistics">
+      <h2>Market Data</h2>
+      <div class="stats-grid" role="table" aria-label="Current market values">
+        <div class="stat-box" role="row">
+          <div class="label" role="columnheader">Equilibrium Price</div>
+          <div class="value" id="stat-price" role="cell">$6.71</div>
+          <div class="delta" id="delta-price" role="cell" aria-live="polite"></div>
+        </div>
+        <div class="stat-box" role="row">
+          <div class="label" role="columnheader">Eq. Quantity</div>
+          <div class="value" id="stat-qty" role="cell">29.7M lbs</div>
+          <div class="delta" id="delta-qty" role="cell" aria-live="polite"></div>
+        </div>
+        <div class="stat-box" role="row">
+          <div class="label" role="columnheader">Qty. Supplied</div>
+          <div class="value" id="stat-qs" role="cell">29.7M</div>
+          <div class="delta" id="delta-qs" role="cell" aria-live="polite"></div>
+        </div>
+        <div class="stat-box" role="row">
+          <div class="label" role="columnheader">QD at New Price</div>
+          <div class="value" id="stat-qd" role="cell">29.7M</div>
+          <div class="delta" id="delta-qd" role="cell" aria-live="polite"></div>
+        </div>
+      </div>
+      <!-- QD explanation box — shown once demand shifts -->
+      <div id="qd-explainer" style="display:none; margin-top:.9rem; background:var(--bg); border-radius:4px; padding:.85rem; font-size:.8rem; line-height:1.6;">
+        <div style="font-weight:700; margin-bottom:.4rem; font-size:.82rem; letter-spacing:.03em;">📊 QD Breakdown</div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--grid); padding-bottom:.35rem; margin-bottom:.35rem;">
+          <span style="color:var(--muted)">QD at old price (D₂ peak)</span>
+          <span id="qd-peak" style="font-weight:600; color:var(--demand2)">—</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--grid); padding-bottom:.35rem; margin-bottom:.35rem;">
+          <span style="color:var(--muted)">QD pulled back by ↑ price</span>
+          <span id="qd-pullback" style="font-weight:600; color:var(--shortage)">—</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--grid); padding-bottom:.35rem; margin-bottom:.35rem;">
+          <span style="color:var(--muted)">QD at new equilibrium (E₂)</span>
+          <span id="qd-final" style="font-weight:600; color:var(--demand2)">—</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--muted)">Net change vs E₁</span>
+          <span id="qd-net" style="font-weight:700; color:#27ae60">—</span>
+        </div>
+        <div style="margin-top:.5rem; font-size:.75rem; color:var(--muted); font-style:italic;">
+          QD rises with the demand shift, then partially falls as price rises — but ends higher than E₁.
+        </div>
+      </div>
+    </div>
+
+    <!-- Market adjustment timeline -->
+    <div class="control-card">
+      <h2>Market Adjustment</h2>
+      <ol class="timeline" aria-label="Steps in market adjustment process" id="timeline">
+        <li id="step-1" aria-label="Step 1: Demand increases">
+          <div class="step-num" aria-hidden="true">1</div>
+          <div class="step-text">
+            <strong>Demand Increases</strong>
+            <span>D₁ shifts right to D₂ at the original price of $6.71/lb</span>
+          </div>
+        </li>
+        <li id="step-2" aria-label="Step 2: Shortage emerges">
+          <div class="step-num" aria-hidden="true">2</div>
+          <div class="step-text">
+            <strong>Shortage Emerges</strong>
+            <span>At $6.71/lb, quantity demanded exceeds quantity supplied</span>
+          </div>
+        </li>
+        <li id="step-3" aria-label="Step 3: Price rises">
+          <div class="step-num" aria-hidden="true">3</div>
+          <div class="step-text">
+            <strong>Price Rises ↑</strong>
+            <span>Competitive bidding by buyers pushes price upward</span>
+          </div>
+        </li>
+        <li id="step-4" aria-label="Step 4: Quantity supplied increases, quantity demanded partially decreases along D2">
+          <div class="step-num" aria-hidden="true">4</div>
+          <div class="step-text">
+            <strong>QS ↑ &amp; QD partially ↓</strong>
+            <span>Higher price draws more supply; QD falls back along D₂ — but stays above E₁ level</span>
+          </div>
+        </li>
+        <li id="step-5" aria-label="Step 5: New equilibrium reached">
+          <div class="step-num" aria-hidden="true">5</div>
+          <div class="step-text">
+            <strong>New Equilibrium (E₂)</strong>
+            <span>Market clears at higher price and higher quantity</span>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+  </aside>
+</div><!-- /.wrapper -->
+
+<script>
+  /* ═══════════════════════════════════════════════════════════
+     MODEL PARAMETERS  (real U.S. oyster market data)
+     Price:    ~$6.71/lb avg dockside (NOAA/MSState 2020-2024)
+     Quantity: ~29.7 million lbs domestic production (NOAA 2022)
+     Producers: 900 farming operations across 21 states (USDA 2023)
+
+     Supply:  P = slope * Q  →  upward sloping
+     Demand1: P = 2*P0 - slope*Q →  downward sloping
+     Eq1: P=6.71, Q=29.7 million lbs
+
+     Demand shift: demand curve translates rightward.
+     At max shift (t=1): new demand intercept raises so new
+     equilibrium moves to higher P and Q (illustrative).
+  ═══════════════════════════════════════════════════════════ */
+
+  const canvas  = document.getElementById('chart');
+  const ctx     = canvas.getContext('2d');
+  const slider  = document.getElementById('demand-slider');
+  const badge   = document.getElementById('shortage-badge');
+
+  // ── Model constants ──────────────────────────────────────
+  const P0   = 6.71;    // original eq price (avg US dockside, $/lb meat, NOAA 2020-2024)
+  const Q0   = 29.7;    // original eq qty (million lbs, NOAA 2022)
+  const slope = P0 / Q0; // supply & demand slope magnitude
+
+  // Supply: P = slope * Q
+  // Demand1: P = 2*P0 - slope*Q  (intercept = 13.42 when P0=6.71)
+  // Demand2 (max shift): intercept raised by +3 → higher eq P & Q
+
+  const MAX_SHIFT = 3.0;  // max demand intercept rise (illustrative shift)
+
+  // ── Canvas coordinate helpers ────────────────────────────
+  // Chart area margins (pixels on the 760×580 canvas)
+  const ML = 82, MR = 50, MT = 40, MB = 64;
+  const CW = () => canvas.width  - ML - MR;
+  const CH = () => canvas.height - MT - MB;
+
+  const Q_MAX = 50; // display max quantity (million lbs)
+  const P_MAX = 14; // display max price ($/lb)
+
+  function toX(q) { return ML + (q / Q_MAX) * CW(); }
+  function toY(p) { return MT + CH() - (p / P_MAX) * CH(); }
+
+  // ── Colours (match CSS vars) ─────────────────────────────
+  const C = {
+    supply:  '#2a6b3c',
+    demand1: '#1a3f6b',
+    demand2: '#b84a1e',
+    shortage:'#c0392b',
+    eq1:     '#1a3f6b',
+    eq2:     '#b84a1e',
+    grid:    '#e0d8c8',
+    muted:   '#7a7060',
+    ink:     '#1a1612',
+    paper:   '#fffdf7',
+  };
+
+  // ── Animation state ──────────────────────────────────────
+  let animTarget = 0;   // target shift (0–1)
+  let animCurrent = 0;  // animated shift
+  let animFrame   = null;
+
+  // ── Draw ─────────────────────────────────────────────────
+  function draw(t) {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = Math.round(canvas.offsetWidth  * dpr);
+    canvas.height = Math.round(canvas.offsetHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Scale margins to canvas size
+    const sc = w / 760;
+    const ml = ML * sc, mr = MR * sc, mt = MT * (h/580), mb = MB * (h/580);
+    const cw = w - ml - mr, ch = h - mt - mb;
+
+    function tx(q) { return ml + (q / Q_MAX) * cw; }
+    function ty(p) { return mt + ch - (p / P_MAX) * ch; }
+
+    // Helper: draw text with a white knockout box behind it
+    function labelText(text, x, y, font, color, align, baseline, pad) {
+      pad = pad || 3;
+      ctx.font = font;
+      ctx.textAlign = align || 'left';
+      ctx.textBaseline = baseline || 'alphabetic';
+      const m = ctx.measureText(text);
+      const tw = m.width;
+      const th = parseInt(font) * 1.2;
+      let bx = x;
+      if (align === 'center') bx = x - tw/2;
+      else if (align === 'right') bx = x - tw;
+      const by = baseline === 'middle' ? y - th/2 : y - th;
+      ctx.fillStyle = 'rgba(255,253,247,0.88)';
+      ctx.fillRect(bx - pad, by - pad, tw + pad*2, th + pad*2);
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // ── Background ──────────────────────────────────────────
+    ctx.fillStyle = C.paper;
+    ctx.fillRect(0, 0, w, h);
+
+    // ── Grid ────────────────────────────────────────────────
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    for (let q = 0; q <= Q_MAX; q += 5) {
+      ctx.beginPath(); ctx.moveTo(tx(q), mt); ctx.lineTo(tx(q), mt+ch); ctx.stroke();
+    }
+    for (let p = 0; p <= P_MAX; p += 2) {
+      ctx.beginPath(); ctx.moveTo(ml, ty(p)); ctx.lineTo(ml+cw, ty(p)); ctx.stroke();
+    }
+
+    // ── Axes ────────────────────────────────────────────────
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(ml, mt - 12); ctx.lineTo(ml, mt+ch); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ml, mt+ch); ctx.lineTo(ml+cw+12, mt+ch); ctx.stroke();
+
+    ctx.fillStyle = C.ink;
+    ctx.beginPath(); ctx.moveTo(ml, mt-12); ctx.lineTo(ml-5, mt+2); ctx.lineTo(ml+5, mt+2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(ml+cw+12, mt+ch); ctx.lineTo(ml+cw, mt+ch-5); ctx.lineTo(ml+cw, mt+ch+5); ctx.closePath(); ctx.fill();
+
+    // Axis labels
+    const axFont = `bold ${Math.round(12*sc)}px 'Source Sans 3', sans-serif`;
+    ctx.fillStyle = C.ink; ctx.font = axFont; ctx.textAlign = 'center'; ctx.setLineDash([]);
+    ctx.fillText('Q — Quantity of Oysters (millions of pounds)', ml + cw/2, mt + ch + 48*(h/580));
+    ctx.save();
+    ctx.translate(13*sc, mt + ch/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText('P — Price per Pound (USD)', 0, 0);
+    ctx.restore();
+
+    // Tick marks & labels
+    const tickFont = `${Math.round(10*sc)}px 'Source Sans 3', sans-serif`;
+    ctx.font = tickFont; ctx.fillStyle = C.muted; ctx.setLineDash([]);
+    ctx.textAlign = 'center';
+    [0,5,10,15,20,25,30,35,40,45,50].forEach(q => {
+      ctx.beginPath(); ctx.moveTo(tx(q), mt+ch); ctx.lineTo(tx(q), mt+ch+5); ctx.strokeStyle=C.muted; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillText(q, tx(q), mt+ch+17*(h/580));
+    });
+    ctx.textAlign = 'right';
+    [0,2,4,6,8,10,12,14].forEach(p => {
+      ctx.beginPath(); ctx.moveTo(ml-5, ty(p)); ctx.lineTo(ml, ty(p)); ctx.strokeStyle=C.muted; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillText('$'+p, ml-8, ty(p)+4);
+    });
+
+    // ── Compute demand lines ────────────────────────────────
+    const d1I = 2 * P0;
+    const d2I = d1I + t * MAX_SHIFT;
+    const supplyQmax = P_MAX / slope;
+    const d1Qmax = d1I / slope;
+    const d2Qmax = d2I / slope;
+
+    const eq1Q = d1I / (2 * slope);
+    const eq1P = slope * eq1Q;
+    const eq2Q = d2I / (2 * slope);
+    const eq2P = slope * eq2Q;
+
+    const qdAtP0 = (d2I - P0) / slope;
+    const qsAtP0 = P0 / slope;
+
+    // Current animated price (for adjustment arrows)
+    const curP = P0 + t * (eq2P - P0);
+    const curQS = curP / slope;           // QS along supply at current price
+    const curQD = (d2I - curP) / slope;   // QD along D2 at current price
+
+    // ── Draw supply line ────────────────────────────────────
+    ctx.beginPath();
+    ctx.moveTo(tx(0), ty(0));
+    ctx.lineTo(tx(Math.min(supplyQmax, Q_MAX)), ty(Math.min(P_MAX, slope * Q_MAX)));
+    ctx.strokeStyle = C.supply; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+    ctx.stroke();
+
+    // Supply label — top-right end of line
+    const sLabelQ = Math.min(supplyQmax * 0.86, Q_MAX - 3);
+    const sLabelP = slope * sLabelQ;
+    labelText('S  (900 farms)', tx(sLabelQ)+6, ty(sLabelP)-4,
+      `bold ${Math.round(12*sc)}px 'Source Sans 3', sans-serif`, C.supply, 'left');
+
+    // ── Draw original demand D1 ─────────────────────────────
+    ctx.beginPath();
+    const d1x0 = d1I > P_MAX ? (d1I - P_MAX) / slope : 0;
+    ctx.moveTo(tx(d1x0), ty(Math.min(d1I, P_MAX)));
+    ctx.lineTo(tx(Math.min(d1Qmax, Q_MAX)), ty(Math.max(0, d1I - slope * Q_MAX)));
+    ctx.strokeStyle = C.demand1; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+    ctx.stroke();
+
+    // D1 label — near the lower-right tail
+    const d1LabelQ = Math.min(d1Qmax * 0.88, Q_MAX - 3);
+    const d1LabelP = d1I - slope * d1LabelQ;
+    labelText('D₁', tx(d1LabelQ)+4, ty(d1LabelP)+4,
+      `bold ${Math.round(13*sc)}px 'Source Sans 3', sans-serif`, C.demand1, 'left');
+
+    // ── Draw new demand D2 ──────────────────────────────────
+    if (t > 0.01) {
+      ctx.beginPath();
+      const d2x0 = d2I > P_MAX ? (d2I - P_MAX) / slope : 0;
+      ctx.moveTo(tx(d2x0), ty(Math.min(d2I, P_MAX)));
+      ctx.lineTo(tx(Math.min(d2Qmax, Q_MAX)), ty(Math.max(0, d2I - slope * Q_MAX)));
+      ctx.strokeStyle = C.demand2; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+      ctx.stroke();
+
+      // D2 label — near the lower-right tail
+      const d2LabelQ = Math.min(d2Qmax * 0.88, Q_MAX - 3);
+      const d2LabelP = d2I - slope * d2LabelQ;
+      labelText('D₂', tx(d2LabelQ)+4, ty(d2LabelP)+4,
+        `bold ${Math.round(13*sc)}px 'Source Sans 3', sans-serif`, C.demand2, 'left');
+    }
+
+    // ── Shortage bar at P0 ──────────────────────────────────
+    if (t > 0.05) {
+      const shortageMag = qdAtP0 - qsAtP0;
+      const opacity = Math.min(1, t * 3);
+
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.75;
+      ctx.fillStyle = C.shortage;
+      const rectX = tx(qsAtP0);
+      const rectW = tx(Math.min(qdAtP0, Q_MAX)) - rectX;
+      ctx.fillRect(rectX, ty(P0) - 5, rectW, 10);
+      ctx.restore();
+
+      // Shortage label — above the bar, with knockout
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      labelText(`◄ SHORTAGE ≈ ${shortageMag.toFixed(1)}M lbs ►`,
+        (tx(qsAtP0) + tx(Math.min(qdAtP0, Q_MAX))) / 2,
+        ty(P0) - 12,
+        `bold ${Math.round(10*sc)}px 'Source Sans 3', sans-serif`,
+        C.shortage, 'center', 'alphabetic', 4);
+      ctx.restore();
+
+      // Dashed vertical at QS_at_P0
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.5;
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(tx(qsAtP0), ty(P0)); ctx.lineTo(tx(qsAtP0), mt+ch); ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── QS↑ arrow on supply curve (adjustment phase) ────────
+    // Shows movement along supply from Q0 up to curQS
+    if (t > 0.08) {
+      const arrowOpacity = Math.min(1, (t - 0.08) / 0.3);
+      ctx.save();
+      ctx.globalAlpha = arrowOpacity;
+
+      // Draw a thick arrow segment along the supply line from E1 up to curQS
+      const startQ = eq1Q;
+      const endQ   = curQS;
+      const startP = slope * startQ;
+      const endP   = slope * endQ;
+
+      // Thick highlight along supply
+      ctx.strokeStyle = C.supply;
+      ctx.lineWidth = 5;
+      ctx.setLineDash([]);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(tx(startQ), ty(startP));
+      ctx.lineTo(tx(endQ),   ty(endP));
+      ctx.stroke();
+
+      // Arrowhead at curQS end
+      drawCurveArrow(ctx, tx(startQ), ty(startP), tx(endQ), ty(endP), C.supply, sc);
+
+      // Label "QS ↑" offset to the right of the arrow midpoint
+      const midQ = (startQ + endQ) / 2;
+      const midP = slope * midQ;
+      labelText('QS ↑', tx(midQ) + 12*sc, ty(midP),
+        `bold ${Math.round(11*sc)}px 'Source Sans 3', sans-serif`,
+        C.supply, 'left', 'middle', 3);
+      ctx.restore();
+    }
+
+    // ── QD↓ arrow on D2 curve (adjustment phase) ────────────
+    // Shows movement along D2 from qdAtP0 back down to curQD
+    if (t > 0.08) {
+      const arrowOpacity = Math.min(1, (t - 0.08) / 0.3);
+      ctx.save();
+      ctx.globalAlpha = arrowOpacity;
+
+      const startQ = qdAtP0;  // QD at original price on D2 (peak)
+      const endQ   = curQD;   // QD at current rising price on D2
+      const startP = P0;
+      const endP   = curP;
+
+      ctx.strokeStyle = C.demand2;
+      ctx.lineWidth = 5;
+      ctx.setLineDash([]);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(tx(startQ), ty(startP));
+      ctx.lineTo(tx(endQ),   ty(endP));
+      ctx.stroke();
+
+      // Arrowhead pointing toward lower QD (higher price = lower quantity demanded on D2)
+      drawCurveArrow(ctx, tx(startQ), ty(startP), tx(endQ), ty(endP), C.demand2, sc);
+
+      // Label "QD ↓" offset below/left of midpoint
+      const midQ = (startQ + endQ) / 2;
+      const midP = (startP + endP) / 2;
+      labelText('QD ↓', tx(midQ) + 12*sc, ty(midP),
+        `bold ${Math.round(11*sc)}px 'Source Sans 3', sans-serif`,
+        C.demand2, 'left', 'middle', 3);
+      ctx.restore();
+    }
+
+    // ── Original equilibrium E1 ─────────────────────────────
+    const e1alpha = t > 0.05 ? 0.45 : 1;
+    ctx.save(); ctx.globalAlpha = e1alpha;
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = C.eq1; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(ml, ty(eq1P)); ctx.lineTo(tx(eq1Q), ty(eq1P)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(eq1Q), ty(eq1P)); ctx.lineTo(tx(eq1Q), mt+ch); ctx.stroke();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(tx(eq1Q), ty(eq1P), 7, 0, Math.PI*2);
+    ctx.fillStyle = C.eq1; ctx.fill();
+    ctx.strokeStyle = C.paper; ctx.lineWidth = 2.5; ctx.setLineDash([]); ctx.stroke();
+
+    // E1 label — place below-right with white background
+    labelText(`E₁  P=$${eq1P.toFixed(2)}, Q=${eq1Q.toFixed(1)}M`,
+      tx(eq1Q) + 11, ty(eq1P) + 18,
+      `bold ${Math.round(11*sc)}px 'Source Sans 3', sans-serif`,
+      C.eq1, 'left', 'alphabetic', 4);
+
+    // ── New equilibrium E2 ───────────────────────────────────
+    if (t > 0.05) {
+      ctx.save(); ctx.globalAlpha = 0.7;
+      ctx.setLineDash([6, 5]); ctx.strokeStyle = C.eq2; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.moveTo(ml, ty(eq2P)); ctx.lineTo(tx(eq2Q), ty(eq2P)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tx(eq2Q), ty(eq2P)); ctx.lineTo(tx(eq2Q), mt+ch); ctx.stroke();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(tx(eq2Q), ty(eq2P), 7, 0, Math.PI*2);
+      ctx.fillStyle = C.eq2; ctx.fill();
+      ctx.strokeStyle = C.paper; ctx.lineWidth = 2.5; ctx.setLineDash([]); ctx.stroke();
+
+      // E2 label — place above-right with white background
+      labelText(`E₂  P=$${eq2P.toFixed(2)}, Q=${eq2Q.toFixed(1)}M`,
+        tx(eq2Q) + 11, ty(eq2P) - 10,
+        `bold ${Math.round(11*sc)}px 'Source Sans 3', sans-serif`,
+        C.eq2, 'left', 'alphabetic', 4);
+
+      // Arrow E1 → E2
+      ctx.save();
+      ctx.globalAlpha = 0.45 * t;
+      drawArrow(ctx, tx(eq1Q), ty(eq1P), tx(eq2Q), ty(eq2P), C.eq2, sc);
+      ctx.restore();
+    }
+
+    // ── Reference price tick $6.71 ──────────────────────────
+    labelText('$6.71', ml - 8, ty(P0) + 4,
+      `bold ${Math.round(10*sc)}px 'Source Sans 3', sans-serif`,
+      C.eq1, 'right', 'alphabetic', 3);
+
+    // ── Reference qty tick 29.7M ────────────────────────────
+    labelText('29.7M', tx(Q0), mt+ch+17*(h/580),
+      `bold ${Math.round(10*sc)}px 'Source Sans 3', sans-serif`,
+      C.eq1, 'center', 'alphabetic', 3);
+  }
+
+  // ── Arrow helper (dashed, E1→E2) ─────────────────────────
+  function drawArrow(ctx, x1, y1, x2, y2, color, scale) {
+    const headLen = 12 * scale;
+    const angle   = Math.atan2(y2 - y1, x2 - x1);
+    ctx.strokeStyle = color; ctx.lineWidth = 1.8 * scale; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI/6), y2 - headLen * Math.sin(angle - Math.PI/6));
+    ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/6), y2 - headLen * Math.sin(angle + Math.PI/6));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // ── Curve arrow helper (solid, for QS↑ / QD↓ on curves) ─
+  function drawCurveArrow(ctx, x1, y1, x2, y2, color, scale) {
+    const headLen = 14 * scale;
+    const angle   = Math.atan2(y2 - y1, x2 - x1);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI/6), y2 - headLen * Math.sin(angle - Math.PI/6));
+    ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/6), y2 - headLen * Math.sin(angle + Math.PI/6));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // ── Update stats panel ───────────────────────────────────
+  function updateStats(t) {
+    const d1I = 2 * P0;
+    const d2I = d1I + t * MAX_SHIFT;
+
+    const eq2Q = d2I / (2 * slope);
+    const eq2P = slope * eq2Q;
+
+    // QD at old price on the new D2 curve (the "peak" demand before price rises)
+    const qdPeak = (d2I - P0) / slope;
+    const qsAtP0 = P0 / slope; // = Q0
+
+    // As price rises from P0 → eq2P, QD moves back along D2 from qdPeak → eq2Q
+    const dispQS = (qsAtP0 + t * (eq2Q - qsAtP0)).toFixed(1);
+    const dispQD = (qdPeak  - t * (qdPeak - eq2Q)).toFixed(1);
+
+    const eqP = P0 + t * (eq2P - P0);
+    const eqQ = Q0 + t * (eq2Q - Q0);
+
+    document.getElementById('stat-price').textContent = `$${eqP.toFixed(2)}`;
+    document.getElementById('stat-qty').textContent   = `${eqQ.toFixed(1)}M lbs`;
+    document.getElementById('stat-qs').textContent    = `${dispQS}M`;
+    document.getElementById('stat-qd').textContent    = `${dispQD}M`;
+
+    const dP = (eqP - P0).toFixed(2);
+    const dQ = (eqQ - Q0).toFixed(1);
+    document.getElementById('delta-price').innerHTML = t > 0.02 ? `<span class="up">▲ +$${dP}</span>` : '';
+    document.getElementById('delta-qty').innerHTML   = t > 0.02 ? `<span class="up">▲ +${dQ}M net</span>` : '';
+    document.getElementById('delta-qs').innerHTML    = t > 0.02 ? `<span class="up">▲ Increasing</span>` : '';
+    // QD delta: net vs E1 is positive, but note the pullback from peak
+    const qdNetChange = (parseFloat(dispQD) - Q0).toFixed(1);
+    const qdPullbackAmt = (qdPeak - parseFloat(dispQD)).toFixed(1);
+    if (t > 0.02) {
+      document.getElementById('delta-qd').innerHTML =
+        `<span class="up">▲ +${qdNetChange}M vs E₁</span>`;
+    } else {
+      document.getElementById('delta-qd').innerHTML = '';
+    }
+
+    // QD Breakdown explainer
+    const explainer = document.getElementById('qd-explainer');
+    if (t > 0.05) {
+      explainer.style.display = 'block';
+      document.getElementById('qd-peak').textContent     = `${qdPeak.toFixed(1)}M lbs`;
+      document.getElementById('qd-pullback').textContent = `−${qdPullbackAmt}M lbs`;
+      document.getElementById('qd-final').textContent    = `${dispQD}M lbs`;
+      document.getElementById('qd-net').textContent      = `▲ +${qdNetChange}M lbs vs E₁`;
+    } else {
+      explainer.style.display = 'none';
+    }
+
+    // Timeline steps
+    const steps = ['step-1','step-2','step-3','step-4','step-5'];
+    const thresholds = [0.02, 0.15, 0.35, 0.55, 0.85];
+    steps.forEach((id, i) => {
+      document.getElementById(id).classList.toggle('active', t >= thresholds[i]);
+    });
+
+    // Shortage badge
+    if (t > 0.05) {
+      const shortageMag = (qdPeak - qsAtP0) * (1 - t) + (t < 1 ? 0 : 0);
+      const rawShortage = qdPeak - qsAtP0;
+      badge.textContent = `Shortage ≈ ${rawShortage.toFixed(1)}M lbs`;
+      badge.style.opacity = Math.min(1, t * 4) * (1 - Math.max(0, (t - 0.8) * 5));
+    } else {
+      badge.style.opacity = '0';
+    }
+
+    // Slider gradient
+    slider.style.setProperty('--pct', (t * 100) + '%');
+    slider.setAttribute('aria-valuenow', Math.round(t * 100));
+    document.getElementById('shift-label').textContent = Math.round(t * 100) + '%';
+  }
+
+  // ── Animation loop ───────────────────────────────────────
+  function animate() {
+    const diff = animTarget - animCurrent;
+    if (Math.abs(diff) > 0.0005) {
+      animCurrent += diff * 0.1;
+      draw(animCurrent);
+      updateStats(animCurrent);
+      animFrame = requestAnimationFrame(animate);
+    } else {
+      animCurrent = animTarget;
+      draw(animCurrent);
+      updateStats(animCurrent);
+      animFrame = null;
+    }
+  }
+
+  // ── Slider event ─────────────────────────────────────────
+  slider.addEventListener('input', () => {
+    animTarget = slider.value / 100;
+    if (!animFrame) animFrame = requestAnimationFrame(animate);
+  });
+
+  // ── Resize ───────────────────────────────────────────────
+  const ro = new ResizeObserver(() => { draw(animCurrent); });
+  ro.observe(canvas);
+
+  // ── Initial render ───────────────────────────────────────
+  draw(0);
+  updateStats(0);
+</script>
+</body>
+</html>
