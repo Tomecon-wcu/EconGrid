@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Supply & Demand – Cattle Market Model</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --ink: #1a1a1a;
+    --accent: #c0392b;
+    --supply: #2e7d32;
+    --supply2: #66bb6a;
+    --demand: #1565c0;
+    --eq: #6a1a6a;
+    --eq2: #ba68c8;
+    --grid: #d6cfc2;
+    --panel: #fff9f0;
+    --border: #c8bfaf;
+    --tag-bg: #1a1a1a;
+    --tag-fg: #f5f0e8;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  /* Skip link for accessibility */
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 1rem;
+    background: var(--ink);
+    color: #fff;
+    padding: .5rem 1rem;
+    border-radius: 4px;
+    font-size: .875rem;
+    z-index: 9999;
+    transition: top .2s;
+  }
+  .skip-link:focus { top: 1rem; }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    letter-spacing: -.5px;
+    line-height: 1.1;
+  }
+
+  header p {
+    margin-top: .5rem;
+    font-size: .95rem;
+    color: #555;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* Canvas panel */
+  .chart-wrap {
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 1.5rem 1rem;
+    position: relative;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+  }
+
+  /* Right panel */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Slider */
+  .slider-group { margin-bottom: 1.25rem; }
+
+  .slider-group label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: .875rem;
+    font-weight: 500;
+    margin-bottom: .4rem;
+  }
+
+  .slider-group label span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .8rem;
+    color: var(--accent);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--supply2) var(--pct, 0%), var(--border) var(--pct, 0%));
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]:focus {
+    outline: 3px solid var(--supply);
+    outline-offset: 3px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--supply);
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--supply);
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+  }
+
+  .stat-box {
+    border-radius: 8px;
+    padding: .75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+
+  .stat-box .label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #888;
+    margin-bottom: .25rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .stat-box .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .stat-box.highlight .value { color: var(--accent); }
+  .stat-box.supply-color .value { color: var(--supply); }
+  .stat-box.demand-color .value { color: var(--demand); }
+
+  /* Explanation box */
+  .explanation {
+    font-size: .875rem;
+    line-height: 1.6;
+    color: #333;
+  }
+
+  .explanation strong { color: var(--ink); }
+
+  .arrow-list {
+    list-style: none;
+    padding: 0;
+    margin-top: .75rem;
+  }
+  .arrow-list li {
+    padding: .3rem 0 .3rem 1.4rem;
+    position: relative;
+    font-size: .85rem;
+    border-bottom: 1px dashed var(--border);
+  }
+  .arrow-list li:last-child { border-bottom: none; }
+  .arrow-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--supply);
+    font-weight: 700;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem .9rem;
+    margin-top: .75rem;
+    font-size: .78rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+  .legend-dot {
+    width: 12px; height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .legend-dot.dashed { background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 9px); }
+
+  /* Surplus indicator bar */
+  .surplus-bar-wrap {
+    margin-top: .75rem;
+  }
+  .surplus-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: .78rem;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: .3rem;
+  }
+  .surplus-bar-track {
+    height: 10px;
+    border-radius: 5px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .surplus-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--supply), var(--supply2));
+    transition: width .4s ease;
+  }
+
+  /* Live region for screen readers */
+  .sr-live {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+  }
+
+  /* Animated equilibrium badge */
+  @keyframes pop { 0%{transform:scale(.7);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  .eq-badge {
+    display: inline-block;
+    background: var(--eq2);
+    color: #fff;
+    font-size: .7rem;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: .15rem .45rem;
+    border-radius: 20px;
+    animation: pop .3s ease forwards;
+    margin-left: .3rem;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main-controls">Skip to controls</a>
+<div aria-live="polite" aria-atomic="true" class="sr-live" id="sr-announce"></div>
+
+<header>
+  <h1>Cattle Market<br>Supply &amp; Demand</h1>
+  <p>Principles of Microeconomics · Market Shift Model</p>
+</header>
+
+<main>
+  <div class="layout">
+    <!-- Chart -->
+    <section class="chart-wrap" aria-label="Supply and demand graph">
+      <canvas id="sdChart" width="640" height="500"
+        role="img"
+        aria-label="Supply and demand curves for the cattle market. The equilibrium point adjusts as supply shifts.">
+      </canvas>
+
+      <!-- Legend below chart -->
+      <div class="legend" aria-label="Chart legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--supply);width:20px;height:3px;"></span>S₁ (Original Supply)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--supply2);width:20px;height:3px;"></span>S₂ (New Supply)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--demand);width:20px;height:3px;"></span>Demand</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--eq);width:20px;height:3px;"></span>Eq₁</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--eq2);width:20px;height:3px;"></span>Eq₂</span>
+      </div>
+    </section>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Controls and market data">
+
+      <!-- Slider control -->
+      <div class="card" id="main-controls">
+        <h2>Supply Shifter</h2>
+        <div class="slider-group">
+          <label for="supplyShift">
+            Supply Increase
+            <span id="shiftLabel">+0%</span>
+          </label>
+          <input
+            type="range"
+            id="supplyShift"
+            min="-60" max="80" value="0" step="1"
+            aria-label="Supply shift percentage. Drag right to increase supply (right shift), drag left to decrease supply (left shift)."
+            aria-describedby="shiftDesc"
+          />
+          <p id="shiftDesc" style="font-size:.75rem;color:#888;margin-top:.35rem;font-family:'IBM Plex Mono',monospace;">
+            Right → more cattle (lower feed costs, better tech) · Left → less cattle (drought, disease)
+          </p>
+        </div>
+
+        <div class="slider-group">
+          <label for="demandShift">
+            Demand Shift
+            <span id="demandLabel">+0%</span>
+          </label>
+          <input
+            type="range"
+            id="demandShift"
+            min="-50" max="50" value="0" step="1"
+            aria-label="Demand shift percentage. Drag right to increase demand, left to decrease."
+          />
+          <p style="font-size:.75rem;color:#888;margin-top:.35rem;font-family:'IBM Plex Mono',monospace;">
+            Simulates changes in consumer beef demand
+          </p>
+        </div>
+      </div>
+
+      <!-- Market stats -->
+      <div class="card" aria-label="Market equilibrium statistics">
+        <h2>Equilibrium Data</h2>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="label">Orig. Price</div>
+            <div class="value demand-color" id="origPrice">$1,000</div>
+          </div>
+          <div class="stat-box highlight">
+            <div class="label">New Price</div>
+            <div class="value" id="newPrice">$1,000</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Orig. Quantity</div>
+            <div class="value demand-color" id="origQty">26,000,000</div>
+          </div>
+          <div class="stat-box supply-color">
+            <div class="label">New Quantity</div>
+            <div class="value" id="newQty">26,000,000</div>
+          </div>
+        </div>
+
+        <div class="surplus-bar-wrap" aria-label="Surplus indicator">
+          <div class="surplus-bar-label">
+            <span>Market Surplus</span>
+            <span id="surplusLabel">0</span>
+          </div>
+          <div class="surplus-bar-track" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="surplusMeter">
+            <div class="surplus-bar-fill" id="surplusBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Economic explanation -->
+      <div class="card explanation" aria-label="Economic explanation">
+        <h2>What's Happening?</h2>
+        <div id="explainText">
+          <p>Move the <strong>Supply Shifter</strong> to see how an increase in supply affects the cattle market.</p>
+          <ul class="arrow-list">
+            <li>Supply curve shifts <strong>right</strong></li>
+            <li>Creates a temporary <strong>surplus</strong></li>
+            <li>Price is pressured <strong>downward</strong></li>
+            <li>Quantity demanded <strong>rises</strong> to new equilibrium</li>
+          </ul>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</main>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────
+const BASE_P = 1000;       // equilibrium price
+const BASE_Q = 26000000;   // equilibrium quantity
+const HALF_Q = 20000000;   // half the Q axis range (so axis goes BASE_Q ± HALF_Q)
+const HALF_P = 1000;       // half the P axis range
+
+// Axis bounds
+const Q_LO = BASE_Q - HALF_Q;  //  6,000,000
+const Q_HI = BASE_Q + HALF_Q;  // 46,000,000
+const P_LO = 0;
+const P_HI = BASE_P + HALF_P;  //  2,000
+
+// Slopes: chosen so lines go corner-to-corner
+// Supply:  P = BASE_P + SLOPE * (Q - BASE_Q - shift)  →  upward
+// Demand:  P = BASE_P - SLOPE * (Q - BASE_Q - dshift) →  downward
+// At Q = Q_HI, supply P should = P_HI = 2000 (no shift)
+// 2000 = 1000 + SLOPE * 20M  →  SLOPE = 1000/20M = 0.00005
+const SLOPE = 0.00005;
+
+// Padding inside canvas (in logical px)
+const PAD = { top: 50, right: 50, bottom: 65, left: 85 };
+
+// ── Canvas ─────────────────────────────────────────────────────────
+const canvas = document.getElementById('sdChart');
+const ctx = canvas.getContext('2d');
+
+// Fixed logical size — no DPR tricks
+const CW = 640;
+const CH = 480;
+canvas.width  = CW;
+canvas.height = CH;
+canvas.style.width  = '100%';
+canvas.style.height = 'auto';
+
+// Map data coords → canvas pixels
+function cx(q) {
+  return PAD.left + (q - Q_LO) / (Q_HI - Q_LO) * (CW - PAD.left - PAD.right);
+}
+function cy(p) {
+  return PAD.top + (1 - (p - P_LO) / (P_HI - P_LO)) * (CH - PAD.top - PAD.bottom);
+}
+
+// ── State ──────────────────────────────────────────────────────────
+let supplyShiftPct = 0;  // −60 to +80
+let demandShiftPct = 0;  // −50 to +50
+let animProg = 0;        // 0..1 animation progress
+
+// ── Math ───────────────────────────────────────────────────────────
+function supplyP(q, shiftQ) { return BASE_P + SLOPE * (q - BASE_Q - shiftQ); }
+function demandP(q, shiftQ) { return BASE_P - SLOPE * (q - BASE_Q - shiftQ); }
+
+function calcEq(sShiftQ, dShiftQ) {
+  // supplyP = demandP
+  // BASE_P + SLOPE*(q - BASE_Q - sShiftQ) = BASE_P - SLOPE*(q - BASE_Q - dShiftQ)
+  // SLOPE*(q - BASE_Q - sShiftQ) + SLOPE*(q - BASE_Q - dShiftQ) = 0
+  // 2*SLOPE*q = SLOPE*(2*BASE_Q + sShiftQ + dShiftQ)
+  const q = BASE_Q + (sShiftQ + dShiftQ) / 2;
+  const p = BASE_P + SLOPE * (q - BASE_Q - sShiftQ);
+  return { q, p };
+}
+
+// ── Drawing ────────────────────────────────────────────────────────
+function line(x1, y1, x2, y2, color, width, dash) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width || 2.5;
+  ctx.setLineDash(dash || []);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function dot(x, y, color, r) {
+  r = r || 7;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function label(text, x, y, color, align) {
+  ctx.save();
+  ctx.fillStyle = color || '#333';
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = align || 'left';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function dashedToAxis(x, y, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  // to left axis
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(PAD.left, y); ctx.stroke();
+  // to bottom axis
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, CH - PAD.bottom); ctx.stroke();
+  ctx.restore();
+}
+
+// ── Main render ────────────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0, 0, CW, CH);
+
+  const sShiftQ = BASE_Q * (supplyShiftPct / 100) * animProg;
+  const dShiftQ = BASE_Q * (demandShiftPct / 100);
+
+  // ── Grid ──
+  ctx.save();
+  ctx.strokeStyle = '#e0d8cc';
+  ctx.lineWidth = 1;
+  for (let p = 0; p <= P_HI; p += 200) {
+    ctx.beginPath(); ctx.moveTo(PAD.left, cy(p)); ctx.lineTo(CW - PAD.right, cy(p)); ctx.stroke();
+  }
+  for (let q = Q_LO; q <= Q_HI; q += 5000000) {
+    ctx.beginPath(); ctx.moveTo(cx(q), PAD.top); ctx.lineTo(cx(q), CH - PAD.bottom); ctx.stroke();
+  }
+  ctx.restore();
+
+  // ── Axes ──
+  ctx.save();
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top);
+  ctx.lineTo(PAD.left, CH - PAD.bottom);
+  ctx.lineTo(CW - PAD.right, CH - PAD.bottom);
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Axis tick labels ──
+  ctx.save();
+  ctx.fillStyle = '#666';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'right';
+  for (let p = 0; p <= P_HI; p += 200) {
+    ctx.fillText('$' + p, PAD.left - 6, cy(p) + 4);
+  }
+  ctx.textAlign = 'center';
+  for (let q = Q_LO; q <= Q_HI; q += 5000000) {
+    ctx.fillText((q/1000000) + 'M', cx(q), CH - PAD.bottom + 18);
+  }
+  ctx.restore();
+
+  // ── Axis titles ──
+  ctx.save();
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.save();
+  ctx.translate(16, CH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('Price ($/head)', 0, 0);
+  ctx.restore();
+  ctx.textAlign = 'center';
+  ctx.fillText('Quantity of Cattle', CW / 2, CH - 8);
+  ctx.restore();
+
+  // ── Draw supply & demand as point-to-point lines ──
+  // S1: from (Q_LO, supplyP(Q_LO,0)) to (Q_HI, supplyP(Q_HI,0))
+  line(cx(Q_LO), cy(supplyP(Q_LO, 0)),
+       cx(Q_HI), cy(supplyP(Q_HI, 0)),
+       '#2e7d32', 3);
+  label('S\u2081', cx(Q_HI) - 4, cy(supplyP(Q_HI, 0)) - 10, '#2e7d32', 'right');
+
+  // D: from (Q_LO, demandP(Q_LO, dShiftQ)) to (Q_HI, demandP(Q_HI, dShiftQ))
+  line(cx(Q_LO), cy(demandP(Q_LO, dShiftQ)),
+       cx(Q_HI), cy(demandP(Q_HI, dShiftQ)),
+       '#1565c0', 3);
+  label('D', cx(Q_LO) + 4, cy(demandP(Q_LO, dShiftQ)) - 10, '#1565c0', 'left');
+
+  // S2 (shifted): only if shifted
+  if (Math.abs(sShiftQ) > 50000) {
+    const s2color = sShiftQ > 0 ? '#43a047' : '#e53935';
+    line(cx(Q_LO), cy(supplyP(Q_LO, sShiftQ)),
+         cx(Q_HI), cy(supplyP(Q_HI, sShiftQ)),
+         s2color, 3, [8, 5]);
+    const lx = sShiftQ > 0 ? cx(Q_HI) - 4 : cx(Q_HI) - 4;
+    label('S\u2082', lx, cy(supplyP(Q_HI, sShiftQ)) - 10, s2color, 'right');
+  }
+
+  // ── Equilibrium points ──
+  const eq1 = calcEq(0, dShiftQ);
+  dashedToAxis(cx(eq1.q), cy(eq1.p), '#6a1a6a');
+  dot(cx(eq1.q), cy(eq1.p), '#6a1a6a');
+  label('E\u2081', cx(eq1.q) + 10, cy(eq1.p) - 10, '#6a1a6a');
+
+  if (Math.abs(sShiftQ) > 50000) {
+    const eq2 = calcEq(sShiftQ, dShiftQ);
+    dashedToAxis(cx(eq2.q), cy(eq2.p), '#ba68c8');
+    dot(cx(eq2.q), cy(eq2.p), '#ba68c8');
+    label('E\u2082', cx(eq2.q) + 10, cy(eq2.p) - 10, '#ba68c8');
+
+    // Update stats panel
+    document.getElementById('newPrice').textContent = '$' + Math.round(eq2.p).toLocaleString();
+    document.getElementById('newQty').textContent   = Math.round(eq2.q).toLocaleString();
+    const surplus = Math.abs(eq2.q - eq1.q);
+    const pct = Math.min(100, surplus / (BASE_Q * 0.5) * 100);
+    document.getElementById('surplusBar').style.width = pct + '%';
+    document.getElementById('surplusLabel').textContent = Math.round(surplus).toLocaleString() + ' head';
+    document.getElementById('surplusMeter').setAttribute('aria-valuenow', Math.round(pct));
+    updateExplain(eq1, eq2);
+  } else {
+    document.getElementById('newPrice').textContent = '$' + Math.round(eq1.p).toLocaleString();
+    document.getElementById('newQty').textContent   = Math.round(eq1.q).toLocaleString();
+    document.getElementById('surplusBar').style.width = '0%';
+    document.getElementById('surplusLabel').textContent = '0 head';
+    document.getElementById('surplusMeter').setAttribute('aria-valuenow', 0);
+    resetExplain();
+  }
+
+  document.getElementById('origPrice').textContent = '$' + Math.round(eq1.p).toLocaleString();
+  document.getElementById('origQty').textContent   = Math.round(eq1.q).toLocaleString();
+}
+
+function fmt(n) { return Math.round(n).toLocaleString(); }
+
+function resetExplain() {
+  document.getElementById('explainText').innerHTML =
+    '<p>Move the <strong>Supply Shifter</strong> to shift S right (increase) or left (decrease) and watch the market adjust.</p>' +
+    '<ul class="arrow-list"><li>Right shift → surplus → price falls → new equilibrium</li>' +
+    '<li>Left shift → shortage → price rises → new equilibrium</li></ul>';
+}
+
+function updateExplain(eq1, eq2) {
+  const pDir  = eq2.p < eq1.p ? '↓ fell' : '↑ rose';
+  const qDir  = eq2.q > eq1.q ? '↑ increased' : '↓ decreased';
+  const why   = supplyShiftPct > 0 ? 'Increased supply created surplus → price fell' : 'Decreased supply created shortage → price rose';
+  document.getElementById('explainText').innerHTML =
+    '<p>' + why + ':</p>' +
+    '<ul class="arrow-list">' +
+    '<li>Price <strong>' + pDir + '</strong> by $' + fmt(Math.abs(eq2.p - eq1.p)) + '</li>' +
+    '<li>Quantity <strong>' + qDir + '</strong> by ' + fmt(Math.abs(eq2.q - eq1.q)) + ' head</li>' +
+    '<li>New equilibrium: <strong>$' + fmt(eq2.p) + '</strong> at <strong>' + fmt(eq2.q) + '</strong> head</li>' +
+    '</ul>';
+  document.getElementById('sr-announce').textContent =
+    'New equilibrium: price $' + fmt(eq2.p) + ', quantity ' + fmt(eq2.q) + ' head.';
+}
+
+// ── Animation ──────────────────────────────────────────────────────
+let animTarget = 0, rafId = null;
+function animate() {
+  const diff = animTarget - animProg;
+  if (Math.abs(diff) < 0.005) { animProg = animTarget; render(); rafId = null; return; }
+  animProg += diff * 0.1;
+  render();
+  rafId = requestAnimationFrame(animate);
+}
+function startAnim(t) {
+  animTarget = t;
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(animate);
+}
+
+// ── Slider wiring ──────────────────────────────────────────────────
+function trackPct(slider) {
+  const pct = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+  slider.style.setProperty('--pct', pct + '%');
+}
+
+document.getElementById('supplyShift').addEventListener('input', function() {
+  supplyShiftPct = +this.value;
+  document.getElementById('shiftLabel').textContent = (supplyShiftPct >= 0 ? '+' : '') + supplyShiftPct + '%';
+  trackPct(this);
+  startAnim(supplyShiftPct !== 0 ? 1 : 0);
+});
+
+document.getElementById('demandShift').addEventListener('input', function() {
+  demandShiftPct = +this.value;
+  document.getElementById('demandLabel').textContent = (demandShiftPct >= 0 ? '+' : '') + demandShiftPct + '%';
+  trackPct(this);
+  render();
+});
+
+trackPct(document.getElementById('supplyShift'));
+trackPct(document.getElementById('demandShift'));
+
+// Initial draw
+render();
+</script>
+</body>
+</html>

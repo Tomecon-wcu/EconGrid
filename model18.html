@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U.S. Milk Market – Supply & Demand Model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --panel: #ffffff;
+      --ink: #1a1208;
+      --soft: #6b5e45;
+      --demand-orig: #c0392b;
+      --demand-new: #e8856a;
+      --supply-orig: #1a6b3c;
+      --supply-new: #2ecc71;
+      --equilib: #2c3e7a;
+      --surplus: rgba(255, 200, 50, 0.22);
+      --surplus-border: #e6a817;
+      --accent: #d4a017;
+      --grid: #e8e0d0;
+      --shadow: 0 4px 24px rgba(0,0,0,0.09);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Source Serif 4', Georgia, serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 1rem;
+      background: var(--equilib);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      z-index: 1000;
+      text-decoration: none;
+      transition: top 0.2s;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    header {
+      max-width: 860px;
+      margin: 0 auto 2rem;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 1rem;
+    }
+    header h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      line-height: 1.2;
+      color: var(--ink);
+    }
+    header p {
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      color: var(--soft);
+      font-style: italic;
+    }
+
+    .layout {
+      max-width: 860px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 680px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* CHART */
+    .chart-wrap {
+      background: var(--panel);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 1.5rem 1rem 1rem;
+      position: relative;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+
+    /* Live readout */
+    #live-readout {
+      margin-top: 1rem;
+      background: #f3ede2;
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-size: 0.92rem;
+      line-height: 1.7;
+      color: var(--ink);
+    }
+    #live-readout strong { color: var(--equilib); }
+
+    /* CONTROLS */
+    .controls {
+      background: var(--panel);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 1.25rem 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+    .controls h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.1rem;
+      border-bottom: 1px solid var(--grid);
+      padding-bottom: 0.5rem;
+      color: var(--ink);
+    }
+
+    .slider-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .slider-group label {
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: var(--soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .slider-group label span {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    input[type="range"]:focus-visible {
+      outline: 3px solid var(--equilib);
+      outline-offset: 4px;
+    }
+    #supply-slider { background: linear-gradient(to right, var(--supply-orig), var(--supply-new)); }
+    #demand-slider { background: linear-gradient(to right, var(--demand-new), var(--demand-orig)); }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid var(--accent);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid var(--accent);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+
+    /* Reset */
+    #reset-btn {
+      margin-top: 0.5rem;
+      background: var(--equilib);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s, transform 0.1s;
+    }
+    #reset-btn:hover { background: #1e2d66; }
+    #reset-btn:active { transform: scale(0.97); }
+    #reset-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.85rem;
+      color: var(--ink);
+    }
+    .legend-line {
+      width: 28px;
+      height: 4px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .dashed { background: repeating-linear-gradient(to right, currentColor 0, currentColor 5px, transparent 5px, transparent 10px); }
+
+    /* Surplus badge */
+    #surplus-badge {
+      display: none;
+      margin-top: 0.75rem;
+      background: #fff8e1;
+      border: 1.5px solid var(--surplus-border);
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.85rem;
+      color: #7a5500;
+      line-height: 1.5;
+    }
+    #surplus-badge.visible { display: block; }
+
+    /* ARIA live region */
+    #aria-live {
+      position: absolute;
+      width: 1px; height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+<a href="#controls" class="skip-link">Skip to controls</a>
+<div id="aria-live" aria-live="polite" aria-atomic="true"></div>
+
+<header>
+  <h1>U.S. Milk Market<br>Supply &amp; Demand Model</h1>
+  <p>Principles of Microeconomics · Surplus Analysis · 2024 Price Data</p>
+</header>
+
+<main>
+  <div class="layout">
+
+    <!-- CHART -->
+    <section class="chart-wrap" aria-labelledby="chart-heading">
+      <h2 id="chart-heading" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Supply and Demand Chart</h2>
+      <canvas id="chart" width="560" height="480"
+        role="img"
+        aria-label="Supply and demand graph for the U.S. milk market. Use the sliders on the right to shift supply and demand curves."
+        tabindex="0">
+      </canvas>
+
+      <div id="live-readout" aria-live="polite" aria-atomic="false">
+        <strong>Equilibrium:</strong> loading…
+      </div>
+
+      <div id="surplus-badge" role="status" aria-live="polite"></div>
+    </section>
+
+    <!-- CONTROLS -->
+    <aside id="controls" class="controls" aria-label="Model controls">
+      <h2>Adjust the Market</h2>
+
+      <!-- Supply slider -->
+      <div class="slider-group">
+        <label for="supply-slider">
+          Supply Shift (rightward = ↑ supply)
+          <span id="supply-val">0</span>
+        </label>
+        <input type="range" id="supply-slider" min="0" max="100" value="0" step="5"
+          aria-label="Supply shift amount. Moving right increases supply."
+          aria-describedby="supply-hint" />
+        <small id="supply-hint" style="font-size:0.78rem;color:var(--soft);">
+          Simulates more dairy farms / lower feed costs
+        </small>
+      </div>
+
+      <!-- Demand slider -->
+      <div class="slider-group">
+        <label for="demand-slider">
+          Demand Shift (leftward = ↓ demand)
+          <span id="demand-val">0</span>
+        </label>
+        <input type="range" id="demand-slider" min="0" max="100" value="0" step="5"
+          aria-label="Demand shift amount. Moving right decreases demand (shifts curve left)."
+          aria-describedby="demand-hint" />
+        <small id="demand-hint" style="font-size:0.78rem;color:var(--soft);">
+          Simulates fewer buyers / plant-milk substitution
+        </small>
+      </div>
+
+      <button id="reset-btn" aria-label="Reset all sliders to default values">↺ Reset to Baseline</button>
+
+      <!-- Legend -->
+      <div class="legend" role="list" aria-label="Chart legend">
+        <div class="legend-item" role="listitem">
+          <div class="legend-line" style="background:var(--demand-orig)"></div>
+          Original Demand (D₁)
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-line" style="background:var(--demand-new);opacity:0.7" id="leg-d2"></div>
+          <span id="leg-d2-label">New Demand (D₂) — shift left</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-line" style="background:var(--supply-orig)"></div>
+          Original Supply (S₁)
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-line" style="background:var(--supply-new)" id="leg-s2"></div>
+          <span id="leg-s2-label">New Supply (S₂) — shift right</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-line" style="background:var(--equilib)"></div>
+          Equilibrium point
+        </div>
+        <div class="legend-item" role="listitem">
+          <div style="width:28px;height:14px;background:var(--surplus);border:1.5px solid var(--surplus-border);border-radius:3px;flex-shrink:0;"></div>
+          Surplus region
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<script>
+// ── Constants & baseline (real ~2024 U.S. average milk prices) ──────────────
+// Price range: $2.50 – $5.50 per gallon
+// Equilibrium baseline: ~$3.50/gallon, ~220 billion lbs/year (USDA)
+
+const CANVAS_W = 560, CANVAS_H = 480;
+const PAD = { top: 40, right: 30, bottom: 70, left: 72 };
+const PLOT_W = CANVAS_W - PAD.left - PAD.right;
+const PLOT_H = CANVAS_H - PAD.top - PAD.bottom;
+
+// Market axes (quantity in index units 0–100, price 0–100 mapped to $2.50–$5.50)
+const PRICE_MIN = 2.50, PRICE_MAX = 5.50;
+const QTY_LABEL_MIN = 180, QTY_LABEL_MAX = 260; // billion lbs
+
+function priceLabel(p) { return '$' + (PRICE_MIN + p / 100 * (PRICE_MAX - PRICE_MIN)).toFixed(2); }
+function qtyLabel(q)   { return (QTY_LABEL_MIN + q / 100 * (QTY_LABEL_MAX - QTY_LABEL_MIN)).toFixed(0); }
+
+// Demand: downward sloping.  P = 80 - 0.6·Q  (in index units, 0–100)
+// Supply: upward sloping.    P = 10 + 0.7·Q
+// Baseline eq: 80 - 0.6Q = 10 + 0.7Q → 70 = 1.3Q → Q≈53.8, P≈47.7
+
+function demandP(q, shift) { return 80 - 0.6 * q - shift; }   // shift > 0 = left (D down)
+function supplyP(q, shift) { return 10 + 0.7 * q - shift; }   // shift > 0 = right (S down in price)
+
+function intersection(dShift, sShift) {
+  // 80 - 0.6Q - dShift = 10 + 0.7Q - sShift
+  // 70 + sShift - dShift = 1.3Q
+  const Q = (70 + sShift - dShift) / 1.3;
+  const P = supplyP(Q, sShift);
+  return { Q, P };
+}
+
+// Convert index units → canvas pixels
+function cx(q) { return PAD.left + (q / 100) * PLOT_W; }
+function cy(p) { return PAD.top + (1 - p / 100) * PLOT_H; }
+
+// ── State ──────────────────────────────────────────────────────────────────
+let supplyShift = 0, demandShift = 0;
+
+// ── Draw ───────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+canvas.width = CANVAS_W;
+canvas.height = CANVAS_H;
+
+function draw() {
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Background
+  ctx.fillStyle = '#faf7f2';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Grid lines
+  ctx.strokeStyle = '#e0d8c8';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const x = PAD.left + (i / 5) * PLOT_W;
+    const y = PAD.top + (i / 5) * PLOT_H;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PLOT_H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PLOT_W, y); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#1a1208';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top);
+  ctx.lineTo(PAD.left, PAD.top + PLOT_H);
+  ctx.lineTo(PAD.left + PLOT_W, PAD.top + PLOT_H);
+  ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = '#1a1208';
+  ctx.font = 'bold 13px "Source Serif 4", Georgia, serif';
+  ctx.textAlign = 'center';
+
+  // X axis ticks
+  for (let i = 0; i <= 5; i++) {
+    const q = i * 20;
+    const x = cx(q);
+    ctx.fillText(qtyLabel(q), x, PAD.top + PLOT_H + 22);
+  }
+  // X label
+  ctx.font = '13px "Source Serif 4", Georgia, serif';
+  ctx.fillText('Quantity (billion lbs/year)', PAD.left + PLOT_W / 2, PAD.top + PLOT_H + 50);
+
+  // Y axis ticks
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const p = i * 20;
+    const y = cy(p);
+    ctx.fillText(priceLabel(p), PAD.left - 10, y + 4);
+  }
+  // Y label (rotated)
+  ctx.save();
+  ctx.translate(18, PAD.top + PLOT_H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.font = '13px "Source Serif 4", Georgia, serif';
+  ctx.fillText('Price ($/gallon)', 0, 0);
+  ctx.restore();
+
+  // ── Surplus region (between new eq price and market price at new supply qty) ──
+  const origEq = intersection(0, 0);
+  const newEq  = intersection(demandShift, supplyShift);
+
+  // Surplus exists when supply shifts right (more qty than demanded at old price)
+  if (supplyShift > 0 || demandShift > 0) {
+    // Find Q where new supply intersects old price level (excess supply at orig price)
+    // Shade between new demand curve and new supply curve from newEq.Q to right
+    ctx.save();
+    ctx.beginPath();
+    // Walk from newEq to right: fill between new supply (bottom) and new demand (top)
+    const steps = 60;
+    ctx.moveTo(cx(newEq.Q), cy(newEq.P));
+    for (let i = 0; i <= steps; i++) {
+      const q = newEq.Q + i * (90 - newEq.Q) / steps;
+      const p = demandP(q, demandShift);
+      if (p < 0) break;
+      ctx.lineTo(cx(q), cy(p));
+    }
+    for (let i = steps; i >= 0; i--) {
+      const q = newEq.Q + i * (90 - newEq.Q) / steps;
+      const p = supplyP(q, supplyShift);
+      ctx.lineTo(cx(q), cy(p));
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 200, 50, 0.18)';
+    ctx.fill();
+    ctx.strokeStyle = '#e6a817';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // ── Curve helper ──────────────────────────────────────────────────────────
+  function drawCurve(fn, color, dash, label, labelSide) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash(dash || []);
+    let started = false;
+    for (let q = 0; q <= 100; q += 0.5) {
+      const p = fn(q);
+      if (p < 0 || p > 105) { started = false; continue; }
+      if (!started) { ctx.moveTo(cx(q), cy(p)); started = true; }
+      else ctx.lineTo(cx(q), cy(p));
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Curve label
+    if (label) {
+      const lq = labelSide === 'right' ? 88 : 12;
+      const lp = fn(lq);
+      if (lp >= 0 && lp <= 100) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px "Source Serif 4", Georgia, serif';
+        ctx.textAlign = labelSide === 'right' ? 'left' : 'right';
+        ctx.fillText(label, cx(lq) + (labelSide === 'right' ? 4 : -4), cy(lp) - 6);
+      }
+    }
+  }
+
+  // Original curves (dashed)
+  drawCurve(q => demandP(q, 0), '#c0392b', [6, 4], 'D₁', 'right');
+  drawCurve(q => supplyP(q, 0), '#1a6b3c', [6, 4], 'S₁', 'right');
+
+  // New curves (solid, only if shifted)
+  if (demandShift > 0) drawCurve(q => demandP(q, demandShift), '#e8856a', [], 'D₂', 'right');
+  if (supplyShift > 0) drawCurve(q => supplyP(q, supplyShift), '#2ecc71', [], 'S₂', 'right');
+
+  // ── Equilibrium dots ──────────────────────────────────────────────────────
+  function drawEqDot(eq, color, labelText) {
+    if (eq.Q < 0 || eq.Q > 100 || eq.P < 0 || eq.P > 100) return;
+    // Drop lines
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(cx(eq.Q), cy(eq.P));
+    ctx.lineTo(cx(eq.Q), cy(0));
+    ctx.moveTo(cx(eq.Q), cy(eq.P));
+    ctx.lineTo(cx(0), cy(eq.P));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dot
+    ctx.beginPath();
+    ctx.arc(cx(eq.Q), cy(eq.P), 7, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = color;
+    ctx.font = 'bold 11px "Source Serif 4", Georgia, serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(labelText, cx(eq.Q) + 10, cy(eq.P) - 8);
+  }
+
+  drawEqDot(origEq, '#2c3e7a', `E₁  ${priceLabel(origEq.P)}`);
+  if (supplyShift > 0 || demandShift > 0) {
+    drawEqDot(newEq, '#8e44ad', `E₂  ${priceLabel(newEq.P)}`);
+  }
+
+  // ── Surplus label in chart ─────────────────────────────────────────────
+  if ((supplyShift > 0 || demandShift > 0) && newEq.Q < 85) {
+    const midQ = newEq.Q + (90 - newEq.Q) * 0.45;
+    const midP = (demandP(midQ, demandShift) + supplyP(midQ, supplyShift)) / 2;
+    if (midP > 5 && midP < 95) {
+      ctx.fillStyle = '#7a5500';
+      ctx.font = 'bold 11px "Source Serif 4", Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('SURPLUS', cx(midQ), cy(midP));
+    }
+  }
+
+  // ── Update readout ─────────────────────────────────────────────────────
+  updateReadout(origEq, newEq);
+}
+
+function updateReadout(origEq, newEq) {
+  const readout = document.getElementById('live-readout');
+  const badge   = document.getElementById('surplus-badge');
+  const ariaLive = document.getElementById('aria-live');
+
+  const origPStr = priceLabel(origEq.P);
+  const origQStr = qtyLabel(origEq.Q) + ' bil lbs/yr';
+  const newPStr  = priceLabel(newEq.P);
+  const newQStr  = qtyLabel(newEq.Q) + ' bil lbs/yr';
+
+  const hasDemandShift = demandShift > 0;
+  const hasSupplyShift = supplyShift > 0;
+  const hasSurplus = hasSupplyShift || hasDemandShift;
+
+  let html = `
+    <strong>Original Equilibrium (E₁):</strong> Price = ${origPStr}, Qty = ${origQStr}<br>`;
+
+  if (hasSurplus) {
+    html += `<strong>New Equilibrium (E₂):</strong> Price = ${newPStr}, Qty = ${newQStr}<br>`;
+    const priceDiff = ((newEq.P - origEq.P) / 100 * (PRICE_MAX - PRICE_MIN)).toFixed(2);
+    const dir = newEq.P < origEq.P ? '↓ fell' : '↑ rose';
+    html += `<strong>Price change:</strong> ${dir} by $${Math.abs(priceDiff)}/gallon`;
+  } else {
+    html += `Use the sliders to shift supply and/or demand.`;
+  }
+
+  readout.innerHTML = html;
+
+  if (hasSurplus) {
+    badge.classList.add('visible');
+    let badgeText = '⚠ Surplus detected: ';
+    if (hasSupplyShift && hasDemandShift)
+      badgeText += 'Supply increased AND demand fell — large surplus drives price down sharply.';
+    else if (hasSupplyShift)
+      badgeText += 'More milk is produced than consumers want at the old price — surplus pushes price down.';
+    else
+      badgeText += 'Fewer buyers at the old price — unsold milk accumulates as a surplus.';
+    badge.textContent = badgeText;
+    ariaLive.textContent = `New equilibrium: price ${priceLabel(newEq.P)}, quantity ${qtyLabel(newEq.Q)} billion pounds per year. ${badgeText}`;
+  } else {
+    badge.classList.remove('visible');
+    ariaLive.textContent = `Baseline equilibrium: price ${origPStr}, quantity ${origQStr}.`;
+  }
+}
+
+// ── Sliders ────────────────────────────────────────────────────────────────
+const supplySlider = document.getElementById('supply-slider');
+const demandSlider = document.getElementById('demand-slider');
+const supplyVal    = document.getElementById('supply-val');
+const demandVal    = document.getElementById('demand-val');
+
+supplySlider.addEventListener('input', () => {
+  supplyShift = +supplySlider.value * 0.35;
+  supplyVal.textContent = supplySlider.value;
+  draw();
+});
+
+demandSlider.addEventListener('input', () => {
+  demandShift = +demandSlider.value * 0.35;
+  demandVal.textContent = demandSlider.value;
+  draw();
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  supplySlider.value = 0; demandSlider.value = 0;
+  supplyShift = 0; demandShift = 0;
+  supplyVal.textContent = '0'; demandVal.textContent = '0';
+  draw();
+  document.getElementById('aria-live').textContent = 'Chart reset to baseline.';
+});
+
+// Initial draw
+draw();
+</script>
+</body>
+</html>

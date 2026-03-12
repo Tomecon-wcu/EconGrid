@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canephora Coffee Market Model - Supply & Demand</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #8B4513;
+            --primary-light: #D2691E;
+            --accent: #E74C3C;
+            --success: #27AE60;
+            --warning: #F39C12;
+            --neutral-dark: #2C3E50;
+            --neutral-light: #ECF0F1;
+            --bg: #FAFAF8;
+            --text: #2C3E50;
+            --border: #BDC3C7;
+            --supply: #3498DB;
+            --demand: #E74C3C;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #FAFAF8 0%, #F5F1E8 100%);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--neutral-dark);
+            opacity: 0.8;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--neutral-light);
+        }
+
+        .panel h2 {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Chart Styles */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #fafaf8, #f5f1e8);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--neutral-light);
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .axis-label {
+            font-size: 12px;
+            fill: var(--text);
+            font-weight: 500;
+        }
+
+        .grid-line {
+            stroke: var(--neutral-light);
+            stroke-width: 0.5;
+            stroke-dasharray: 2,2;
+        }
+
+        .supply-line {
+            stroke: var(--supply);
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .demand-line {
+            stroke: var(--demand);
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .equilibrium-point {
+            fill: var(--success);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .equilibrium-line {
+            stroke: var(--success);
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+            opacity: 0.6;
+        }
+
+        .shortage-area {
+            fill: rgba(231, 76, 60, 0.1);
+        }
+
+        .surplus-area {
+            fill: rgba(52, 152, 219, 0.1);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: var(--neutral-dark);
+            font-size: 0.95rem;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--neutral-light);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            accent-color: var(--primary);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: var(--primary-light);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.15);
+            background: var(--primary-light);
+        }
+
+        .value-display {
+            min-width: 60px;
+            padding: 0.5rem 1rem;
+            background: var(--neutral-light);
+            border-radius: 6px;
+            font-weight: 600;
+            color: var(--primary);
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .btn-reset {
+            background: var(--neutral-light);
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .btn-reset:hover {
+            background: var(--border);
+            transform: translateY(-2px);
+        }
+
+        .btn-reset:focus {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Data Display */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .data-item {
+            background: linear-gradient(135deg, var(--neutral-light), #f8f6f3);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .data-label {
+            font-size: 0.85rem;
+            color: var(--neutral-dark);
+            opacity: 0.8;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .data-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .data-item.supply {
+            border-left-color: var(--supply);
+        }
+
+        .data-item.demand {
+            border-left-color: var(--demand);
+        }
+
+        .data-item.equilibrium {
+            border-left-color: var(--success);
+            grid-column: 1 / -1;
+        }
+
+        /* Status Messages */
+        .status-box {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.05), rgba(243, 156, 18, 0.05));
+            border: 2px solid var(--warning);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-top: 1.5rem;
+            color: var(--neutral-dark);
+            font-weight: 500;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            transition: all 0.4s ease;
+        }
+
+        .status-box.shortage {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+            border-color: var(--demand);
+            color: var(--demand);
+        }
+
+        .status-box.surplus {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+            border-color: var(--supply);
+            color: var(--supply);
+        }
+
+        .status-box.equilibrium {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .legend {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .legend-color.supply {
+            background: var(--supply);
+        }
+
+        .legend-color.demand {
+            background: var(--demand);
+        }
+
+        .legend-color.equilibrium {
+            background: var(--success);
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .panel {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @media (prefers-reduced-motion: prefer-reduced) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Focus Indicators */
+        input:focus,
+        button:focus {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1a1a1a;
+                --text: #e0e0e0;
+                --neutral-light: #333333;
+                --border: #555555;
+            }
+
+            body {
+                background: linear-gradient(135deg, #1a1a1a 0%, #2a2520 100%);
+            }
+
+            .panel {
+                background: #242424;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+                border-color: #333333;
+            }
+
+            .chart-container {
+                background: linear-gradient(to right, #2a2a2a, #323228);
+                border-color: #333333;
+            }
+
+            .value-display {
+                background: #333333;
+                color: #d2691e;
+            }
+
+            .data-item {
+                background: linear-gradient(135deg, #333333, #2a2a2a);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>☕ Canephora Coffee Market Model</h1>
+            <p class="subtitle">Interactive Supply & Demand Equilibrium Analysis</p>
+        </header>
+
+        <div class="grid">
+            <!-- Chart Panel -->
+            <div class="panel">
+                <h2>Market Equilibrium</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color supply"></div>
+                        <span>Supply</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color demand"></div>
+                        <span>Demand</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color equilibrium"></div>
+                        <span>Equilibrium</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <svg id="marketChart" role="img" aria-label="Supply and demand chart showing market equilibrium">
+                        <!-- Grid lines -->
+                        <g id="gridLines"></g>
+                        
+                        <!-- Axes -->
+                        <line x1="80" y1="320" x2="450" y2="320" stroke="var(--text)" stroke-width="2"/>
+                        <line x1="80" y1="40" x2="80" y2="320" stroke="var(--text)" stroke-width="2"/>
+                        
+                        <!-- Axis labels -->
+                        <text x="265" y="350" class="axis-label" text-anchor="middle">Quantity (1,000 lbs)</text>
+                        <text x="25" y="190" class="axis-label" text-anchor="middle" transform="rotate(-90 25 190)">Price per lb ($)</text>
+                        
+                        <!-- Price axis tick marks and labels -->
+                        <line x1="75" y1="320" x2="80" y2="320" stroke="var(--text)" stroke-width="1"/>
+                        <text x="70" y="325" class="axis-label" text-anchor="end" font-size="11">$0</text>
+                        
+                        <line x1="75" y1="268" x2="80" y2="268" stroke="var(--text)" stroke-width="1"/>
+                        <text x="70" y="273" class="axis-label" text-anchor="end" font-size="11">$2.50</text>
+                        
+                        <line x1="75" y1="216" x2="80" y2="216" stroke="var(--text)" stroke-width="1"/>
+                        <text x="70" y="221" class="axis-label" text-anchor="end" font-size="11">$5.50</text>
+                        
+                        <line x1="75" y1="164" x2="80" y2="164" stroke="var(--text)" stroke-width="1"/>
+                        <text x="70" y="169" class="axis-label" text-anchor="end" font-size="11">$7.50</text>
+                        
+                        <line x1="75" y1="112" x2="80" y2="112" stroke="var(--text)" stroke-width="1"/>
+                        <text x="70" y="117" class="axis-label" text-anchor="end" font-size="11">$10</text>
+                        
+                        <!-- Quantity axis tick marks and labels -->
+                        <line x1="80" y1="325" x2="80" y2="320" stroke="var(--text)" stroke-width="1"/>
+                        <text x="80" y="340" class="axis-label" text-anchor="middle" font-size="11">0</text>
+                        
+                        <line x1="185" y1="325" x2="185" y2="320" stroke="var(--text)" stroke-width="1"/>
+                        <text x="185" y="340" class="axis-label" text-anchor="middle" font-size="11">250</text>
+                        
+                        <line x1="290" y1="325" x2="290" y2="320" stroke="var(--text)" stroke-width="1"/>
+                        <text x="290" y="340" class="axis-label" text-anchor="middle" font-size="11">500</text>
+                        
+                        <line x1="395" y1="325" x2="395" y2="320" stroke="var(--text)" stroke-width="1"/>
+                        <text x="395" y="340" class="axis-label" text-anchor="middle" font-size="11">750</text>
+                        
+                        <!-- Supply and Demand lines with labels -->
+                        <polyline id="supplyLine" class="supply-line" points=""/>
+                        <text id="supplyLabel" x="450" y="50" class="axis-label" fill="var(--supply)" font-weight="bold" font-size="16" style="transition: all 0.3s;">S1</text>
+                        
+                        <polyline id="supplyLineShifted" class="supply-line" points="" style="stroke-dasharray: 4,4; opacity: 0.7;"/>
+                        <text id="supplyLabelShifted" x="450" y="50" class="axis-label" fill="var(--supply)" font-weight="bold" font-size="16" style="opacity: 0; transition: opacity 0.3s;">S2</text>
+                        
+                        <polyline id="demandLine" class="demand-line" points=""/>
+                        <text id="demandLabel" x="100" y="40" class="axis-label" fill="var(--demand)" font-weight="bold" font-size="16" style="transition: all 0.3s;">D1</text>
+                        
+                        <polyline id="demandLineShifted" class="demand-line" points="" style="stroke-dasharray: 4,4; opacity: 0.7;"/>
+                        <text id="demandLabelShifted" x="100" y="40" class="axis-label" fill="var(--demand)" font-weight="bold" font-size="16" style="opacity: 0; transition: opacity 0.3s;">D2</text>
+                        
+                        <!-- Equilibrium marker -->
+                        <circle id="equilibriumPoint" class="equilibrium-point" cx="0" cy="0" r="6"/>
+                        
+                        <!-- Reference lines -->
+                        <line id="eqPriceLine" class="equilibrium-line" x1="0" y1="0" x2="0" y2="0"/>
+                        <line id="eqQtyLine" class="equilibrium-line" x1="0" y1="0" x2="0" y2="0"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div class="panel">
+                <h2>Market Controls</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="demandShift">Demand Shift (Increase) →</label>
+                        <div class="slider-container">
+                            <input 
+                                type="range" 
+                                id="demandShift" 
+                                min="0" 
+                                max="100" 
+                                value="0"
+                                aria-label="Demand shift slider, 0 to 100 percent"
+                            >
+                            <div class="value-display" id="demandValue">0%</div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="supplyShift">Supply Shift (Change) →</label>
+                        <div class="slider-container">
+                            <input 
+                                type="range" 
+                                id="supplyShift" 
+                                min="-50" 
+                                max="50" 
+                                value="0"
+                                aria-label="Supply shift slider, -50 to 50 percent"
+                            >
+                            <div class="value-display" id="supplyValue">0%</div>
+                        </div>
+                    </div>
+
+                    <button class="btn-reset" onclick="resetModel()">Reset Model</button>
+                </div>
+
+                <div class="data-grid">
+                    <div class="data-item supply">
+                        <div class="data-label">Current Supply</div>
+                        <div class="data-value" id="currentSupply">500.0</div>
+                        <div class="data-label" style="margin-top: 0.5rem; font-size: 0.8rem;">1000 lbs</div>
+                    </div>
+                    <div class="data-item demand">
+                        <div class="data-label">Current Demand</div>
+                        <div class="data-value" id="currentDemand">500.0</div>
+                        <div class="data-label" style="margin-top: 0.5rem; font-size: 0.8rem;">1000 lbs</div>
+                    </div>
+                    <div class="data-item equilibrium">
+                        <div class="data-label">Equilibrium Price</div>
+                        <div class="data-value" id="equilibriumPrice">$5.50</div>
+                    </div>
+                </div>
+
+                <div class="status-box" id="statusBox">
+                    ✓ Market in equilibrium at 500K lbs and $5.50/lb
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Dynamics Explanation -->
+        <div class="panel">
+            <h2>Market Adjustment Process</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                <div>
+                    <h3 style="color: var(--demand); font-size: 1rem; margin-bottom: 0.5rem;">When Demand ↑</h3>
+                    <ol style="font-size: 0.95rem; color: var(--text); margin-left: 1.2rem; line-height: 1.8;">
+                        <li>Shortage emerges (Qty Demanded > Qty Supplied)</li>
+                        <li>Prices rise to clear the market</li>
+                        <li>Quantity supplied increases</li>
+                        <li>Quantity demanded falls</li>
+                        <li>New equilibrium reached</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 style="color: var(--supply); font-size: 1rem; margin-bottom: 0.5rem;">When Supply ↓</h3>
+                    <ol style="font-size: 0.95rem; color: var(--text); margin-left: 1.2rem; line-height: 1.8;">
+                        <li>Shortage emerges (Qty Demanded > Qty Supplied)</li>
+                        <li>Prices rise to clear the market</li>
+                        <li>Quantity demanded falls</li>
+                        <li>New equilibrium at lower quantity</li>
+                        <li>Equilibrium price higher</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 style="color: var(--supply); font-size: 1rem; margin-bottom: 0.5rem;">When Supply ↑</h3>
+                    <ol style="font-size: 0.95rem; color: var(--text); margin-left: 1.2rem; line-height: 1.8;">
+                        <li>Surplus emerges (Qty Supplied > Qty Demanded)</li>
+                        <li>Prices fall to clear the market</li>
+                        <li>Quantity demanded increases</li>
+                        <li>New equilibrium at higher quantity</li>
+                        <li>Equilibrium price lower</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initial Parameters
+        const BASE_QUANTITY = 500; // in thousands of lbs (500,000 lbs)
+        const BASE_PRICE = 5.50; // per lb
+
+        // Market State
+        let state = {
+            demandShift: 0,
+            supplyShift: 0,
+            baseSupply: BASE_QUANTITY,
+            baseDemand: BASE_QUANTITY,
+            basePrice: BASE_PRICE
+        };
+
+        // Demand and Supply Functions
+        function calculateSupply(price, shiftPercent) {
+            // Supply: Qs = 300 + 40P + shift
+            // At P=5.50: Qs = 300 + 40*5.50 = 520 (close to 500)
+            const shift = (shiftPercent / 100) * 100;
+            return Math.max(50, 300 + 40 * price + shift);
+        }
+
+        function calculateDemand(price, shiftPercent) {
+            // Demand: Qd = 700 - 40P + shift
+            // At P=5.50: Qd = 700 - 40*5.50 = 480 (close to 500)
+            const shift = (shiftPercent / 100) * 150;
+            return Math.max(10, 700 - 40 * price + shift);
+        }
+
+        function findEquilibrium(supplyShift, demandShift) {
+            // Solve: calculateSupply(P, supplyShift) = calculateDemand(P, demandShift)
+            let price = 0;
+            let step = 5;
+            let tolerance = 0.01;
+
+            for (let i = 0; i < 1000; i++) {
+                const supply = calculateSupply(price, supplyShift);
+                const demand = calculateDemand(price, demandShift);
+                const diff = supply - demand;
+
+                if (Math.abs(diff) < tolerance) break;
+
+                if (diff > 0) {
+                    price -= step;
+                } else {
+                    price += step;
+                }
+
+                step *= 0.95;
+            }
+
+            price = Math.max(0.1, Math.min(price, 10));
+            const quantity = calculateSupply(price, supplyShift);
+
+            return { price: parseFloat(price.toFixed(2)), quantity: parseFloat(quantity.toFixed(1)) };
+        }
+
+        function updateChart() {
+            const svg = document.getElementById('marketChart');
+            const demandShift = parseFloat(document.getElementById('demandShift').value);
+            const supplyShift = parseFloat(document.getElementById('supplyShift').value);
+
+            // Update value displays
+            document.getElementById('demandValue').textContent = `${demandShift}%`;
+            document.getElementById('supplyValue').textContent = `${supplyShift}%`;
+
+            // Chart dimensions - adjusted to center better
+            const chart = {
+                left: 80,
+                top: 40,
+                right: 450,
+                bottom: 320,
+                width: 370,
+                height: 280
+            };
+
+            const priceRange = { min: 0, max: 10 };
+            const qtyRange = { min: 0, max: 1000 };
+
+            // Scale functions
+            const xScale = (qty) => chart.left + (qty / qtyRange.max) * chart.width;
+            const yScale = (price) => chart.bottom - (price / priceRange.max) * chart.height;
+
+            // Generate supply and demand curves
+            const supplyPoints = [];
+            const supplyPointsShifted = [];
+            const demandPoints = [];
+            const demandPointsShifted = [];
+
+            for (let price = 0; price <= priceRange.max; price += 0.1) {
+                const supply = calculateSupply(price, 0); // Original supply with no shift
+                const supplyShifted = calculateSupply(price, supplyShift); // Shifted supply
+                const demand = calculateDemand(price, 0); // Original demand with no shift
+                const demandShifted = calculateDemand(price, demandShift); // Shifted demand
+
+                if (supply >= qtyRange.min && supply <= qtyRange.max) {
+                    supplyPoints.push(`${xScale(supply)},${yScale(price)}`);
+                }
+                if (supplyShifted >= qtyRange.min && supplyShifted <= qtyRange.max) {
+                    supplyPointsShifted.push(`${xScale(supplyShifted)},${yScale(price)}`);
+                }
+                if (demand >= qtyRange.min && demand <= qtyRange.max) {
+                    demandPoints.push(`${xScale(demand)},${yScale(price)}`);
+                }
+                if (demandShifted >= qtyRange.min && demandShifted <= qtyRange.max) {
+                    demandPointsShifted.push(`${xScale(demandShifted)},${yScale(price)}`);
+                }
+            }
+
+            // Update polylines
+            document.getElementById('supplyLine').setAttribute('points', supplyPoints.join(' '));
+            document.getElementById('supplyLineShifted').setAttribute('points', supplyPointsShifted.join(' '));
+            document.getElementById('demandLine').setAttribute('points', demandPoints.join(' '));
+            document.getElementById('demandLineShifted').setAttribute('points', demandPointsShifted.join(' '));
+            
+            // Position S1 label on the supply line (at price = 8.5, near top)
+            const priceForS1Label = 8.5;
+            const qtyS1 = calculateSupply(priceForS1Label, 0);
+            const qtyS2 = calculateSupply(priceForS1Label, supplyShift);
+            const s1LabelX = xScale(qtyS1) + 10;
+            const s1LabelY = yScale(priceForS1Label) - 15;
+            const s2LabelX = xScale(qtyS2) + 10;
+            const s2LabelY = yScale(priceForS1Label) - 15;
+            
+            document.getElementById('supplyLabel').setAttribute('x', s1LabelX);
+            document.getElementById('supplyLabel').setAttribute('y', s1LabelY);
+            
+            document.getElementById('supplyLabelShifted').setAttribute('x', s2LabelX);
+            document.getElementById('supplyLabelShifted').setAttribute('y', s2LabelY);
+            
+            // Position D1 label on the demand line (at price = 2)
+            const priceForLabel = 2;
+            const qtyD1 = calculateDemand(priceForLabel, 0);
+            const qtyD2 = calculateDemand(priceForLabel, demandShift);
+            const d1LabelX = xScale(qtyD1) + 15;
+            const d1LabelY = yScale(priceForLabel) - 10;
+            const d2LabelX = xScale(qtyD2) + 15;
+            const d2LabelY = yScale(priceForLabel) - 10;
+            
+            document.getElementById('demandLabel').setAttribute('x', d1LabelX);
+            document.getElementById('demandLabel').setAttribute('y', d1LabelY);
+            
+            document.getElementById('demandLabelShifted').setAttribute('x', d2LabelX);
+            document.getElementById('demandLabelShifted').setAttribute('y', d2LabelY);
+            
+            // Show S2 and D2 labels only when there's a shift
+            const supplyLabelShifted = document.getElementById('supplyLabelShifted');
+            if (supplyShift !== 0) {
+                supplyLabelShifted.style.opacity = '1';
+            } else {
+                supplyLabelShifted.style.opacity = '0';
+            }
+            
+            const demandLabelShifted = document.getElementById('demandLabelShifted');
+            if (demandShift !== 0) {
+                demandLabelShifted.style.opacity = '1';
+            } else {
+                demandLabelShifted.style.opacity = '0';
+            }
+
+            // Find and mark equilibrium
+            const equilibrium = findEquilibrium(supplyShift, demandShift);
+            const eqX = xScale(equilibrium.quantity);
+            const eqY = yScale(equilibrium.price);
+
+            document.getElementById('equilibriumPoint').setAttribute('cx', eqX);
+            document.getElementById('equilibriumPoint').setAttribute('cy', eqY);
+
+            // Equilibrium reference lines
+            document.getElementById('eqPriceLine').setAttribute('x1', chart.left);
+            document.getElementById('eqPriceLine').setAttribute('x2', eqX);
+            document.getElementById('eqPriceLine').setAttribute('y1', eqY);
+            document.getElementById('eqPriceLine').setAttribute('y2', eqY);
+
+            document.getElementById('eqQtyLine').setAttribute('x1', eqX);
+            document.getElementById('eqQtyLine').setAttribute('x2', eqX);
+            document.getElementById('eqQtyLine').setAttribute('y1', eqY);
+            document.getElementById('eqQtyLine').setAttribute('y2', chart.bottom);
+
+            // Update data displays
+            document.getElementById('currentSupply').textContent = equilibrium.quantity.toFixed(1);
+            document.getElementById('currentDemand').textContent = equilibrium.quantity.toFixed(1);
+            document.getElementById('equilibriumPrice').textContent = `$${equilibrium.price.toFixed(2)}`;
+
+            // Update status message
+            updateStatusMessage(demandShift, supplyShift, equilibrium);
+        }
+
+        function updateStatusMessage(demandShift, supplyShift, equilibrium) {
+            const statusBox = document.getElementById('statusBox');
+            let message = '';
+            let className = '';
+
+            // Calculate shortage/surplus at original price
+            const originalPrice = 5.50;
+            const supplyAtOriginal = calculateSupply(originalPrice, supplyShift);
+            const demandAtOriginal = calculateDemand(originalPrice, demandShift);
+            const difference = supplyAtOriginal - demandAtOriginal;
+
+            if (Math.abs(difference) < 5) {
+                message = `✓ Market in equilibrium at ${equilibrium.quantity.toFixed(0)}K lbs and $${equilibrium.price.toFixed(2)}/lb`;
+                className = 'equilibrium';
+            } else if (difference < 0) {
+                const shortage = Math.abs(difference).toFixed(0);
+                message = `📊 Shortage of ~${shortage}K lbs at $${originalPrice}/lb. Prices rising → More supply, less demand → New equilibrium at $${equilibrium.price.toFixed(2)}/lb`;
+                className = 'shortage';
+            } else {
+                const surplus = difference.toFixed(0);
+                message = `📊 Surplus of ~${surplus}K lbs at $${originalPrice}/lb. Prices falling → Less supply, more demand → New equilibrium at $${equilibrium.price.toFixed(2)}/lb`;
+                className = 'surplus';
+            }
+
+            statusBox.textContent = message;
+            statusBox.className = `status-box ${className}`;
+        }
+
+        function resetModel() {
+            document.getElementById('demandShift').value = 0;
+            document.getElementById('supplyShift').value = 0;
+            updateChart();
+        }
+
+        // Event listeners
+        document.getElementById('demandShift').addEventListener('input', updateChart);
+        document.getElementById('supplyShift').addEventListener('input', updateChart);
+
+        // Initial render
+        updateChart();
+    </script>
+</body>
+</html>
+
+
+ 

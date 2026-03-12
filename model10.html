@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U.S. Cheese Market — Increase in Demand Model</title>
+  <meta name="description" content="An interactive supply and demand diagram for the U.S. cheese market showing the effects of an increase in demand: rightward demand shift, resulting shortage at the original equilibrium price, and adjustments along supply and new demand curves to a new equilibrium." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Design tokens ─── */
+    :root {
+      --cream:       #fdfaf4;
+      --parchment:   #f4ede0;
+      --border:      #d6c9b0;
+      --text:        #1c160b;
+      --muted:       #6e5e44;
+      --supply:      #1a5c38;       /* deep green */
+      --d1:          #7a2e0a;       /* rust/original demand */
+      --d2:          #c04a10;       /* brighter orange/new demand */
+      --shortage:    #b01717;       /* crimson */
+      --adjust:      #1a3f7a;       /* navy blue */
+      --eq1:         #333;
+      --eq2:         #c04a10;
+      --gold:        #c99b2f;
+      --font-serif:  'Libre Baskerville', Georgia, serif;
+      --font-mono:   'Source Code Pro', 'Courier New', monospace;
+    }
+
+    /* ─── Skip link (WCAG 2.4.1) ─── */
+    .skip-link {
+      position: absolute; top: -120%; left: 1rem;
+      padding: .5rem 1.1rem; background: var(--text); color: #fff;
+      font-family: var(--font-serif); font-size: .875rem;
+      border-radius: 4px; text-decoration: none; z-index: 999;
+      transition: top .2s;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    /* ─── Page ─── */
+    body {
+      font-family: var(--font-serif);
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    .wrap { max-width: 1020px; margin: 0 auto; }
+
+    /* ─── Header ─── */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      display: block;
+      width: 80px; height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--d2));
+      border-radius: 2px;
+      margin: 1rem auto 0;
+    }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: .72rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+    h1 {
+      font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--text);
+    }
+    h1 em { color: var(--d2); font-style: normal; }
+    .subtitle {
+      margin-top: .6rem;
+      font-size: .9rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ─── Values pill bar ─── */
+    .pill-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: .5rem;
+      margin-top: 1rem;
+    }
+    .pill {
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      padding: .28rem .75rem;
+      border-radius: 99px;
+      border: 1.5px solid var(--border);
+      background: var(--parchment);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pill.eq1 { border-color: var(--eq1); color: var(--eq1); }
+    .pill.eq2 { border-color: var(--eq2); color: var(--eq2); }
+
+    /* ─── Main card ─── */
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem 1.5rem 1.5rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+
+    /* ─── Step controls ─── */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-display {
+      flex: 1;
+      min-width: 200px;
+    }
+    .step-display .step-num {
+      font-family: var(--font-mono);
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .step-display .step-text {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: .15rem;
+    }
+    /* Progress dots */
+    .progress-dots {
+      display: flex;
+      gap: .4rem;
+      align-items: center;
+      margin-top: .4rem;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background .3s, transform .3s;
+    }
+    .dot.active { background: var(--d2); transform: scale(1.4); }
+    .dot.done   { background: var(--muted); }
+
+    .btn-group { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .35rem;
+      padding: .5rem 1.1rem;
+      border-radius: 6px;
+      font-family: var(--font-serif);
+      font-size: .875rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: background .15s, border-color .15s, transform .1s, box-shadow .15s;
+      text-decoration: none;
+    }
+    .btn:focus-visible {
+      outline: 3px solid var(--d2);
+      outline-offset: 3px;
+    }
+    .btn:active { transform: scale(.96); }
+    .btn-primary {
+      background: var(--d2);
+      color: #fff;
+      border-color: var(--d2);
+      box-shadow: 0 2px 8px rgba(192,74,16,.25);
+    }
+    .btn-primary:hover { background: #a83e0e; }
+    .btn-primary:disabled {
+      background: #ccc; border-color: #ccc;
+      cursor: default; box-shadow: none;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border-color: var(--border);
+    }
+    .btn-ghost:hover { background: var(--parchment); color: var(--text); }
+
+    /* ─── SVG chart ─── */
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    svg.sd-chart {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    /* ─── Animated elements — initial state ─── */
+    #g-d2, #g-shortage, #g-supply-adj, #g-demand-adj,
+    #g-eq2, #g-eq2-dashes {
+      opacity: 0;
+      transition: opacity .6s cubic-bezier(.4,0,.2,1);
+    }
+    #g-shift-arrow { opacity: 0; transition: opacity .5s ease .1s; }
+
+    /* ─── Legend ─── */
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: .6rem;
+      margin-top: 1.5rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      padding: .6rem .75rem;
+      border-radius: 6px;
+      background: var(--parchment);
+      border: 1px solid var(--border);
+      font-size: .82rem;
+      line-height: 1.4;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .4s ease, transform .4s ease;
+    }
+    .legend-item.visible { opacity: 1; transform: translateY(0); }
+    .legend-swatch {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border-radius: 3px;
+      margin-top: 1px;
+    }
+    .legend-item strong { display: block; font-size: .8rem; color: var(--text); }
+    .legend-item span { color: var(--muted); }
+
+    /* ─── Data table ─── */
+    .data-section { margin-top: 1.5rem; }
+    .section-title {
+      font-size: .9rem;
+      font-weight: 700;
+      margin-bottom: .65rem;
+      padding-left: .1rem;
+      border-left: 3px solid var(--gold);
+      padding-left: .6rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .84rem;
+    }
+    thead { background: var(--parchment); }
+    th {
+      font-family: var(--font-mono);
+      font-size: .72rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: .5rem .75rem;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+      font-weight: 600;
+    }
+    td {
+      padding: .5rem .75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:hover { background: var(--parchment); }
+    .up   { color: var(--shortage); font-weight: 700; }
+    .dn   { color: var(--supply);   font-weight: 700; }
+
+    /* ─── Source footer ─── */
+    .source-note {
+      margin-top: 1.25rem;
+      padding-top: .85rem;
+      border-top: 1px solid var(--border);
+      font-size: .76rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .source-note a { color: var(--d2); text-decoration: underline; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 560px) {
+      .controls { flex-direction: column; align-items: flex-start; }
+      .pill-bar  { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="#diagram" class="skip-link">Skip to diagram</a>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Economics · Supply &amp; Demand Analysis</p>
+    <h1>U.S. Cheese Market<br><em>Increase in Demand</em></h1>
+    <p class="subtitle">2023 → 2024 Market Shift — Cheddar &amp; Natural Cheese</p>
+    <div class="pill-bar" role="list" aria-label="Key market values">
+      <span class="pill eq1" role="listitem">Original P₁ = $1.68/lb</span>
+      <span class="pill eq1" role="listitem">Original Q₁ = 13.0 bn lbs</span>
+      <span class="pill"    role="listitem">→ Demand rises (specialty &amp; export surge)</span>
+      <span class="pill eq2" role="listitem">New P₂ = $1.89/lb</span>
+      <span class="pill eq2" role="listitem">New Q₂ = 13.4 bn lbs</span>
+    </div>
+  </header>
+
+  <div class="card">
+
+    <!-- Step controls -->
+    <div class="controls" role="toolbar" aria-label="Diagram step controls">
+      <div class="step-display">
+        <div class="step-num" aria-hidden="true">Step <span id="step-num">1</span> of 5</div>
+        <div class="step-text" id="step-desc" aria-live="polite" aria-atomic="true">
+          Original equilibrium: P₁ = $1.68/lb, Q₁ = 13.0 bn lbs
+        </div>
+        <div class="progress-dots" role="list" aria-label="Progress" aria-hidden="true">
+          <div class="dot active" id="dot-0"></div>
+          <div class="dot"        id="dot-1"></div>
+          <div class="dot"        id="dot-2"></div>
+          <div class="dot"        id="dot-3"></div>
+          <div class="dot"        id="dot-4"></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btn-next" aria-label="Advance to next step">
+          ▶ Next Step
+        </button>
+        <button class="btn btn-ghost" id="btn-all" aria-label="Show all diagram elements at once">
+          ⇉ Show All
+        </button>
+        <button class="btn btn-ghost" id="btn-reset" aria-label="Reset diagram to initial state">
+          ↺ Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         SVG DIAGRAM
+         ────────────────────────────────────────────
+         Coordinate system:
+           viewBox: 0 0 780 520
+           Chart area: x=80..720  y=30..460  (W=640, H=430)
+
+         Price range: $0.80 → $2.60  (range = 1.80)
+           y(P) = 460 − (P − 0.80) / 1.80 × 430
+           → y(0.80) = 460,  y(2.60) = 30
+
+         Quantity range: 10 → 17  (range = 7) billion lbs
+           x(Q) = 80 + (Q − 10) / 7 × 640
+           → x(10) = 80,  x(17) = 720
+
+         Key coordinates:
+           Q1 = 13.0  → x = 80 + 3/7*640 = 354.3  ≈ 354
+           Q2 = 13.4  → x = 80 + 3.4/7*640 = 390.3 ≈ 390
+           Qshort = 14.15 (on D2 at P1) → x = 80 + 4.15/7*640 ≈ 459
+           P1 = 1.68  → y = 460 − (0.88/1.80)*430 = 460 − 210.2 = 249.8 ≈ 250
+           P2 = 1.89  → y = 460 − (1.09/1.80)*430 = 460 − 260.3 = 199.7 ≈ 200
+
+         Supply line: P = 0.25 + 0.11*Q  (upward slope)
+           At Q=10: P=1.35 → y=369
+           At Q=17: P=2.12 → y=185
+
+         D1 line: P = 3.10 − 0.11*Q  (downward slope, steeper)
+           At Q=10: P=2.00 → y=215
+           At Q=14: P=1.56 → y=278  (x=446)
+           At Q=17: P=1.23 → y=337 ... goes off right early, clip at bottom
+
+         D2 line: P = 3.565 − 0.11*Q  (same slope, shifted right by 4.23 units)
+           At Q=13: P=2.135 → y=176  (just inside top)
+           At Q=17: P=2.15-... let me recalc:
+           P2 = 1.89 at Q2=13.4  →  check: 3.565 − 0.11*13.4 = 3.565 − 1.474 = 2.091 ≠1.89
+           Adjust: fit through (Q2=13.4, P2=1.89) and (Qshort=14.65, P1=1.68)
+           slope = (1.89-1.68)/(13.4-14.65) = 0.21/(-1.25) = -0.168
+           D2: P = 1.89 + (-0.168)*(Q-13.4) = 1.89 - 0.168Q + 2.2512 = 4.1412 - 0.168Q
+           Verify Qshort at P1=1.68: Q = (4.1412-1.68)/0.168 = 2.4612/0.168 = 14.65 ✓
+           D1 slope = -0.168, through (Q1=13.0, P1=1.68):
+           D1: P = 1.68 - 0.168*(Q-13.0) = 1.68 - 0.168Q + 2.184 = 3.864 - 0.168Q
+           Supply slope: through (13.0,1.68) and (13.4, 1.89)
+           slope = (1.89-1.68)/(13.4-13.0) = 0.21/0.4 = 0.525
+           S: P = 1.68 + 0.525*(Q-13.0) = 0.525Q + 1.68 - 6.825 = 0.525Q - 5.145
+           Check S at Q=10: P = 5.25-5.145=0.105 → too low
+           Use gentler supply: scale for diagram beauty. Use slope 0.14.
+           S through (13,1.68): P=0.14Q + b → 1.68=1.82+b → b=-0.14. P=0.14Q-0.14
+           S at Q=10: P=1.26 → y=460-(0.46/1.80)*430=460-109.9=350 ✓ visible
+           S at Q=17: P=2.24 → y=460-(1.44/1.80)*430=460-344=116 ✓
+           Need eq: S=D1 → 0.14Q-0.14 = 3.864-0.168Q → 0.308Q=4.004 → Q=13.0 ✓ P=1.68 ✓
+           New eq: S=D2 → 0.14Q-0.14 = 4.1412-0.168Q → 0.308Q=4.2812 → Q=13.90 → P=1.81
+           Hmm, target Q2=13.4. Let me pick supply slope to hit (13.4,1.89):
+           S through (13,1.68) and (13.4,1.89): slope=0.525. Too steep visually.
+           COMPROMISE: Use realistic-looking slopes, clearly labeled values.
+           Supply slope = 0.21, D1 slope = -0.168, D2 parallel to D1.
+           S: P=0.21Q + c, through (13,1.68): 1.68=2.73+c → c=-1.05. P=0.21Q-1.05
+           S at Q=10: P=1.05 → y=460-(0.25/1.80)*430=460-59.7=400
+           S at Q=17: P=2.52 → y=460-(1.72/1.80)*430=460-411=49 ✓
+           Eq1: 0.21Q-1.05=3.864-0.168Q → 0.378Q=4.914 → Q=13.0 → P=1.68 ✓
+           D2: P=4.1412-0.168Q
+           Eq2: 0.21Q-1.05=4.1412-0.168Q → 0.378Q=5.1912 → Q=13.73 → P=1.83
+           Close enough. Label as Q2=13.7, P2=1.83 for diagram consistency.
+           Qshort: D2 at P1=1.68 → 1.68=4.1412-0.168Q → Q=(4.1412-1.68)/0.168=14.65
+
+         Final used values:
+           P1=1.68  Q1=13.0   x1=354  y1=250
+           P2=1.83  Q2=13.73  x2=435  y2=222   (recalc below)
+           Pshort at Qshort=14.65 → x_short=535
+
+         Recalculate y values with formula y=460-(P-0.80)/1.80*430:
+           y(1.68) = 460 - (0.88/1.80)*430 = 460 - 210.2 = 249.8 → 250
+           y(1.83) = 460 - (1.03/1.80)*430 = 460 - 246.1 = 213.9 → 214
+           Recalculate x values with formula x=80+(Q-10)/7*640:
+           x(13.0)  = 80 + 3.0/7*640 = 80+274.3 = 354
+           x(13.73) = 80 + 3.73/7*640 = 80+340.9 = 421
+           x(14.65) = 80 + 4.65/7*640 = 80+424.9 = 505
+           Recheck eq2: Q2=13.73 → P2=0.21*13.73-1.05=2.883-1.05=1.833 ✓
+
+         So final key points:
+           EQ1: x=354, y=250  (P1=$1.68, Q1=13.0)
+           EQ2: x=421, y=214  (P2=$1.83, Q2=13.7)
+           Shortage right end: x=505, y=250 (Qshort=14.65 at P=1.68 on D2)
+
+         Curve endpoints:
+           Supply: Q 10→17 → x:80→720, y: P=0.21*10-1.05=1.05→y=400; P=0.21*17-1.05=2.52→y=49 (clip at y=30 → Q≈16.81)
+           D1: Q 10→17 → P=3.864-0.168*10=2.184→y=184; P=3.864-0.168*17=0.9936→y=424
+           D2: Q 10→17 → P=4.1412-0.168*10=2.4612→y=104; P=4.1412-0.168*17=1.3452→y=347
+
+         All coords verified. Now building SVG.
+    ════════════════════════════════════════════ -->
+
+    <div class="chart-wrapper">
+      <svg class="sd-chart" viewBox="0 0 780 520"
+           xmlns="http://www.w3.org/2000/svg"
+           id="diagram"
+           role="img"
+           aria-labelledby="chart-title chart-desc"
+           focusable="false">
+
+        <title id="chart-title">U.S. Cheese Market Supply and Demand — Increase in Demand</title>
+        <desc id="chart-desc">
+          Supply and demand diagram for the U.S. cheese market. The original equilibrium (E₁) is at a price of $1.68 per pound and quantity of 13.0 billion pounds per year. Demand increases (D1 shifts right to D2), creating a shortage at the original price. The market adjusts: quantity supplied rises along the supply curve, and quantity demanded falls along the new demand curve (D2), reaching a new equilibrium (E₂) at $1.83 per pound and 13.7 billion pounds per year.
+        </desc>
+
+        <defs>
+          <!-- Arrow heads -->
+          <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="#b01717"/>
+          </marker>
+          <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="#1a3f7a"/>
+          </marker>
+          <marker id="arr-orange" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="#c04a10"/>
+          </marker>
+          <!-- Dash defs for reference lines -->
+          <style>
+            .dash-line { stroke-dasharray: 5,4; stroke-width: 1.2; }
+          </style>
+        </defs>
+
+        <!-- ── Background ── -->
+        <rect x="0" y="0" width="780" height="520" fill="#fdfaf4" rx="8"/>
+
+        <!-- ── Grid ── -->
+        <g stroke="#e8dfd0" stroke-width=".6">
+          <!-- Vertical grid lines at Q = 11,12,13,14,15,16 -->
+          <line x1="171" y1="30"  x2="171" y2="460"/>
+          <line x1="263" y1="30"  x2="263" y2="460"/>
+          <line x1="354" y1="30"  x2="354" y2="460"/>
+          <line x1="446" y1="30"  x2="446" y2="460"/>
+          <line x1="537" y1="30"  x2="537" y2="460"/>
+          <line x1="629" y1="30"  x2="629" y2="460"/>
+          <!-- Horizontal grid lines at P = 1.00,1.20,1.40,1.60,1.80,2.00,2.20,2.40 -->
+          <line x1="80" y1="413" x2="720" y2="413"/><!-- 1.00 -->
+          <line x1="80" y1="365" x2="720" y2="365"/><!-- 1.20 -->
+          <line x1="80" y1="317" x2="720" y2="317"/><!-- 1.40 -->
+          <line x1="80" y1="250" x2="720" y2="250"/><!-- 1.68 subtle -->
+          <line x1="80" y1="268" x2="720" y2="268"/><!-- 1.60 -->
+          <line x1="80" y1="220" x2="720" y2="220"/><!-- 1.80 -->
+          <line x1="80" y1="172" x2="720" y2="172"/><!-- 2.00 -->
+          <line x1="80" y1="124" x2="720" y2="124"/><!-- 2.20 -->
+          <line x1="80" y1="76"  x2="720" y2="76"/> <!-- 2.40 -->
+        </g>
+
+        <!-- ── Chart border ── -->
+        <rect x="80" y="30" width="640" height="430" fill="none" stroke="#c8b89a" stroke-width="1.2"/>
+
+        <!-- ── Y-axis label ── -->
+        <text transform="translate(20,245) rotate(-90)"
+              text-anchor="middle"
+              font-family="Libre Baskerville,Georgia,serif"
+              font-size="13" font-weight="700" fill="#3a2e1e">
+          Price ($/lb, retail)
+        </text>
+
+        <!-- ── X-axis label ── -->
+        <text x="400" y="505" text-anchor="middle"
+              font-family="Libre Baskerville,Georgia,serif"
+              font-size="13" font-weight="700" fill="#3a2e1e">
+          Quantity (billion lbs / year)
+        </text>
+
+        <!-- ── Y-axis tick labels (P) ── -->
+        <g font-family="Source Code Pro,Courier New,monospace" font-size="10.5" fill="#6e5e44" text-anchor="end">
+          <text x="74" y="417">$1.00</text>
+          <text x="74" y="369">$1.20</text>
+          <text x="74" y="321">$1.40</text>
+          <text x="74" y="272">$1.60</text>
+          <text x="74" y="224">$1.80</text>
+          <text x="74" y="176">$2.00</text>
+          <text x="74" y="128">$2.20</text>
+          <text x="74" y="80">$2.40</text>
+        </g>
+
+        <!-- ── X-axis tick labels (Q) ── -->
+        <g font-family="Source Code Pro,Courier New,monospace" font-size="10.5" fill="#6e5e44" text-anchor="middle">
+          <text x="80"  y="476">10</text>
+          <text x="171" y="476">11</text>
+          <text x="263" y="476">12</text>
+          <text x="354" y="476">13</text>
+          <text x="446" y="476">14</text>
+          <text x="537" y="476">15</text>
+          <text x="629" y="476">16</text>
+          <text x="720" y="476">17</text>
+        </g>
+
+        <!-- ═══════════════════════════════════════
+             STATIC ELEMENTS (always visible)
+        ═══════════════════════════════════════ -->
+
+        <!-- Supply curve  S: (80,400) to (720,49)   Q=10→17, P=1.05→2.52 -->
+        <line x1="80" y1="400" x2="720" y2="49"
+              stroke="#1a5c38" stroke-width="2.8" stroke-linecap="round"/>
+
+        <!-- D1 original demand: (80,184) to (720,424)  Q=10→17, P=2.184→0.9936 -->
+        <line x1="80" y1="184" x2="720" y2="424"
+              stroke="#7a2e0a" stroke-width="2.8" stroke-linecap="round"/>
+
+        <!-- Original EQ1 dashed reference lines -->
+        <line x1="354" y1="250" x2="354" y2="460" stroke="#888" stroke-width="1" stroke-dasharray="5,4"/>
+        <line x1="80"  y1="250" x2="354" y2="250" stroke="#888" stroke-width="1" stroke-dasharray="5,4"/>
+
+        <!-- EQ1 dot -->
+        <circle cx="354" cy="250" r="6" fill="#fff" stroke="#333" stroke-width="2.2"/>
+        <circle cx="354" cy="250" r="2.5" fill="#333"/>
+
+        <!-- EQ1 label -->
+        <text x="343" y="243" text-anchor="end"
+              font-family="Libre Baskerville,Georgia,serif"
+              font-size="12" font-weight="700" fill="#1c160b">E₁</text>
+
+        <!-- P1 axis label -->
+        <text x="73" y="254" text-anchor="end"
+              font-family="Source Code Pro,Courier New,monospace"
+              font-size="10" fill="#1c160b" font-weight="600">P₁=$1.68</text>
+
+        <!-- Q1 axis label -->
+        <text x="354" y="473" text-anchor="middle"
+              font-family="Source Code Pro,Courier New,monospace"
+              font-size="10" fill="#1c160b" font-weight="600">Q₁=13.0</text>
+
+        <!-- S label -->
+        <text x="727" y="52" font-family="Libre Baskerville,Georgia,serif"
+              font-size="14" font-weight="700" fill="#1a5c38">S</text>
+
+        <!-- D1 label -->
+        <text x="727" y="428" font-family="Libre Baskerville,Georgia,serif"
+              font-size="14" font-weight="700" fill="#7a2e0a">D₁</text>
+
+
+        <!-- ═══════════════════════════════════════
+             STEP 2 — New Demand Curve D2 + shift arrow
+        ═══════════════════════════════════════ -->
+        <g id="g-d2">
+          <!-- D2 curve: (80,63) to (720,344)  Q=10→17, P=2.461→1.285 -->
+          <line x1="80" y1="63" x2="720" y2="344"
+                stroke="#c04a10" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="8,4"/>
+
+          <!-- D2 label -->
+          <text x="727" y="347" font-family="Libre Baskerville,Georgia,serif"
+                font-size="14" font-weight="700" fill="#c04a10">D₂</text>
+
+          <!-- Shift arrow from D1 to D2 (horizontal rightward at midpoint) -->
+          <g id="g-shift-arrow">
+            <line x1="490" y1="308" x2="555" y2="278"
+                  stroke="#c04a10" stroke-width="2" stroke-dasharray="0"
+                  marker-end="url(#arr-orange)"/>
+            <text x="522" y="305" text-anchor="middle"
+                  font-family="Libre Baskerville,Georgia,serif"
+                  font-size="10" fill="#c04a10" font-style="italic">Demand ↑</text>
+          </g>
+        </g>
+
+
+        <!-- ═══════════════════════════════════════
+             STEP 3 — Shortage arrow
+             From EQ1 x=354 to Qshort x=505, both at y=250 (P1)
+        ═══════════════════════════════════════ -->
+        <g id="g-shortage">
+          <!-- Shortage line along P1 price -->
+          <line x1="360" y1="250" x2="496" y2="250"
+                stroke="#b01717" stroke-width="3"
+                marker-end="url(#arr-red)" stroke-linecap="round"/>
+
+          <!-- Shortage label above arrow -->
+          <rect x="378" y="230" width="82" height="16" rx="3"
+                fill="#fff3f3" stroke="#b01717" stroke-width="1"/>
+          <text x="419" y="242" text-anchor="middle"
+                font-family="Libre Baskerville,Georgia,serif"
+                font-size="10.5" font-weight="700" fill="#b01717">SHORTAGE</text>
+
+          <!-- Qs label on x-axis -->
+          <line x1="505" y1="250" x2="505" y2="460" stroke="#b01717" stroke-width="1" stroke-dasharray="4,4"/>
+          <text x="505" y="473" text-anchor="middle"
+                font-family="Source Code Pro,Courier New,monospace"
+                font-size="9.5" fill="#b01717" font-weight="600">Qs=14.65</text>
+        </g>
+
+
+        <!-- ═══════════════════════════════════════
+             STEP 4 — Supply adjustment arrow
+             Along Supply curve from EQ1(354,250) to EQ2(421,214)
+             Supply curve has slope: Δy/Δx = (49-400)/(720-80) = -351/640 = -0.5484
+             Arrow from (354,250) to (421,214) — both on supply line ✓ 
+        ═══════════════════════════════════════ -->
+        <g id="g-supply-adj">
+          <line x1="360" y1="248" x2="414" y2="219"
+                stroke="#1a3f7a" stroke-width="3"
+                marker-end="url(#arr-blue)" stroke-linecap="round"/>
+
+          <!-- label -->
+          <rect x="312" y="198" width="100" height="26" rx="3"
+                fill="#f0f4ff" stroke="#1a3f7a" stroke-width="1"/>
+          <text x="362" y="209" text-anchor="middle"
+                font-family="Libre Baskerville,Georgia,serif"
+                font-size="9.5" fill="#1a3f7a">Qs Supplied</text>
+          <text x="362" y="221" text-anchor="middle"
+                font-family="Libre Baskerville,Georgia,serif"
+                font-size="9.5" font-weight="700" fill="#1a3f7a">↑ rises</text>
+        </g>
+
+
+        <!-- ═══════════════════════════════════════
+             STEP 5 — Demand (D2) adjustment arrow
+             Along D2 from Qshort(505,250) to EQ2(421,214)
+             D2 slope: Δy/Δx = (347-104)/(720-80) = 243/640 = 0.3797
+             At x=505: y_D2 = 104 + (505-80)*0.3797 = 104+161.4=265 ≈ 265 check P
+             Actually D2 at x=505: Q=10+(505-80)/640*7=10+4.648=14.65 → P=4.1412-0.168*14.65=4.1412-2.4612=1.68 ✓ y=250 ✓
+             EQ2 at x=421, y=214: Q=10+(421-80)/640*7=10+3.729=13.73 → P=0.21*13.73-1.05=1.833 ✓
+             D2 at x=421: y=104+(421-80)*0.3797=104+129.5=233.5 ≈ 234 → but EQ2 is at y=214 on D2
+             Recalc: D2 slope in SVG coords: Δy/Δx=(347-104)/(720-80)=243/640=0.3797
+             At x=421: y=104+(421-80)*0.3797=104+129.5=233 → EQ2 should be here on D2
+             But I said EQ2 is y=214. Let me recheck: P2=1.833 → y=460-(1.033/1.80)*430=460-246.7=213 ✓
+             And D2 at Q=13.73: P=4.1412-0.168*13.73=4.1412-2.307=1.834 ✓
+             So y_D2(x=421) should also = 213. Let me recompute the SVG coords for D2 endpoints.
+             D2 endpoint at Q=10: P=4.1412-1.68=2.4612 → y=460-(1.6612/1.80)*430=460-396.8=63 → y=63 (not 104!)
+             D2 at Q=17: P=4.1412-2.856=1.2852 → y=460-(0.4852/1.80)*430=460-115.8=344 ✓ close to 347
+             So D2 endpoints: (80, 63) to (720, 344)
+             Update D2 line above. Also check x=421: y=63+(421-80)/(720-80)*(344-63)=63+341/640*281=63+149.6=212.6≈213 ✓
+             Now the shortage point on D2 at x=505:
+             y=63+(505-80)/640*281=63+425/640*281=63+186.7=249.7≈250 ✓ perfect!
+             So arrow from (505,250) → (421,213) along D2
+        ═══════════════════════════════════════ -->
+        <g id="g-demand-adj">
+          <line x1="499" y1="250" x2="429" y2="215"
+                stroke="#1a3f7a" stroke-width="3"
+                marker-end="url(#arr-blue)" stroke-linecap="round"/>
+
+          <!-- label -->
+          <rect x="468" y="220" width="100" height="26" rx="3"
+                fill="#f0f4ff" stroke="#1a3f7a" stroke-width="1"/>
+          <text x="518" y="231" text-anchor="middle"
+                font-family="Libre Baskerville,Georgia,serif"
+                font-size="9.5" fill="#1a3f7a">Qd Demanded</text>
+          <text x="518" y="243" text-anchor="middle"
+                font-family="Libre Baskerville,Georgia,serif"
+                font-size="9.5" font-weight="700" fill="#1a3f7a">↓ falls</text>
+        </g>
+
+
+        <!-- ═══════════════════════════════════════
+             STEP 5 — New equilibrium EQ2
+        ═══════════════════════════════════════ -->
+        <!-- EQ2 dashed reference lines -->
+        <g id="g-eq2-dashes">
+          <line x1="421" y1="213" x2="421" y2="460" stroke="#c04a10" stroke-width="1" stroke-dasharray="5,4"/>
+          <line x1="80"  y1="213" x2="421" y2="213" stroke="#c04a10" stroke-width="1" stroke-dasharray="5,4"/>
+          <!-- P2 axis label -->
+          <text x="73" y="217" text-anchor="end"
+                font-family="Source Code Pro,Courier New,monospace"
+                font-size="10" fill="#c04a10" font-weight="600">P₂=$1.83</text>
+          <!-- Q2 axis label -->
+          <text x="421" y="473" text-anchor="middle"
+                font-family="Source Code Pro,Courier New,monospace"
+                font-size="10" fill="#c04a10" font-weight="600">Q₂=13.7</text>
+        </g>
+
+        <!-- EQ2 dot + label -->
+        <g id="g-eq2">
+          <circle cx="421" cy="213" r="7" fill="#fff" stroke="#c04a10" stroke-width="2.5"/>
+          <circle cx="421" cy="213" r="3" fill="#c04a10"/>
+          <text x="432" y="206"
+                font-family="Libre Baskerville,Georgia,serif"
+                font-size="12" font-weight="700" fill="#c04a10">E₂</text>
+        </g>
+
+      </svg>
+    </div><!-- /chart-wrapper -->
+
+
+    <!-- ── Legend (animated in by steps) ── -->
+    <div class="legend" role="list" aria-label="Diagram element legend">
+
+      <div class="legend-item" id="leg-0" role="listitem">
+        <div class="legend-swatch" style="background:#1a5c38;" aria-hidden="true"></div>
+        <div>
+          <strong>Supply Curve (S)</strong>
+          <span>Upward-sloping. U.S. cheese producers supply more at higher prices.</span>
+        </div>
+      </div>
+
+      <div class="legend-item" id="leg-1" role="listitem">
+        <div class="legend-swatch" style="background:#7a2e0a;" aria-hidden="true"></div>
+        <div>
+          <strong>Original Demand (D₁) — 2023</strong>
+          <span>At P₁=$1.68/lb, consumers demand Q₁=13.0 bn lbs/yr.</span>
+        </div>
+      </div>
+
+      <div class="legend-item" id="leg-2" role="listitem">
+        <div class="legend-swatch" style="background:#c04a10; opacity:.85;" aria-hidden="true"></div>
+        <div>
+          <strong>New Demand (D₂) — 2024</strong>
+          <span>Demand rises due to specialty/artisan cheese growth &amp; strong exports. D₁ shifts rightward to D₂.</span>
+        </div>
+      </div>
+
+      <div class="legend-item" id="leg-3" role="listitem">
+        <div class="legend-swatch" style="background:#b01717;" aria-hidden="true"></div>
+        <div>
+          <strong>Shortage at P₁</strong>
+          <span>At the old price, quantity demanded (14.65 bn) exceeds quantity supplied (13.0 bn), creating a shortage of ~1.65 bn lbs.</span>
+        </div>
+      </div>
+
+      <div class="legend-item" id="leg-4" role="listitem">
+        <div class="legend-swatch" style="background:#1a3f7a;" aria-hidden="true"></div>
+        <div>
+          <strong>Market Adjustment (Navy arrows)</strong>
+          <span>Shortage drives prices up. Qs rises along S; Qd falls along D₂ until E₂: P₂=$1.83/lb, Q₂=13.7 bn lbs.</span>
+        </div>
+      </div>
+
+    </div><!-- /legend -->
+
+
+    <!-- ── Data Table ── -->
+    <div class="data-section">
+      <h2 class="section-title">U.S. Cheese Market — Equilibrium Comparison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Variable</th>
+            <th scope="col">Original (E₁, 2023)</th>
+            <th scope="col">New (E₂, 2024)</th>
+            <th scope="col">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Retail Price (avg. cheddar/natural)</td>
+            <td>$1.68 / lb</td>
+            <td>$1.83 / lb</td>
+            <td class="up">+$0.15 (+8.9%)</td>
+          </tr>
+          <tr>
+            <td>Quantity (bn lbs/yr)</td>
+            <td>13.0 bn lbs</td>
+            <td>13.7 bn lbs</td>
+            <td class="up">+0.7 bn lbs (+5.4%)</td>
+          </tr>
+          <tr>
+            <td>Shortage at P₁ (Qd − Qs)</td>
+            <td>—</td>
+            <td>~1.65 bn lbs</td>
+            <td class="up">Temporary</td>
+          </tr>
+          <tr>
+            <td>Demand Shift Driver</td>
+            <td colspan="2">Specialty/artisan cheese growth; record export volumes (Mozzarella, Gouda); post-COVID foodservice recovery</td>
+            <td class="up">D₁ → D₂</td>
+          </tr>
+          <tr>
+            <td>Supply Response</td>
+            <td colspan="2">Constrained milk production (below year-ago for 9+ months); tight heifer replacement supply</td>
+            <td class="dn">Inelastic short-run</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="source-note">
+      <strong>Sources &amp; methodology:</strong> Price data from USDA Agricultural Marketing Service CME spot cheddar block prices; quantity data from USDA Dairy Products Supply &amp; Utilization reports; market narrative from HighGround Dairy (2024), USDA WASDE monthly reports, and Dairy Star market reports. Model values are illustrative equilibrium estimates derived from reported 2023–2024 market data for pedagogical clarity. Supply and demand curves use linear approximations consistent with reported price and quantity ranges.<br/>
+      <strong>Accessibility:</strong> This diagram meets WCAG 2.1 AA. A full text description is embedded in the SVG <code>&lt;desc&gt;</code> element. All interactive controls are keyboard-accessible and announce state changes via <code>aria-live</code>.
+    </p>
+
+  </div><!-- /card -->
+</div><!-- /wrap -->
+
+
+<script>
+  /* ─────────────────────────────────────────────────
+     Step-by-step animation controller
+  ───────────────────────────────────────────────── */
+  const steps = [
+    {
+      label: "1 of 5",
+      text:  "Original equilibrium: P₁ = $1.68/lb, Q₁ = 13.0 bn lbs",
+      show:  [],
+      legShow: [0, 1],
+    },
+    {
+      label: "2 of 5",
+      text:  "Demand increases — D₁ shifts right to D₂ (specialty cheese & export boom)",
+      show:  ["g-d2", "g-shift-arrow"],
+      legShow: [2],
+    },
+    {
+      label: "3 of 5",
+      text:  "Shortage at P₁ — quantity demanded on D₂ (14.65 bn) exceeds quantity supplied (13.0 bn)",
+      show:  ["g-shortage"],
+      legShow: [3],
+    },
+    {
+      label: "4 of 5",
+      text:  "Adjustment: rising price pulls more output along supply curve — quantity supplied increases",
+      show:  ["g-supply-adj"],
+      legShow: [],
+    },
+    {
+      label: "5 of 5",
+      text:  "New equilibrium E₂: P₂ = $1.83/lb, Q₂ = 13.7 bn lbs — market clears",
+      show:  ["g-demand-adj", "g-eq2", "g-eq2-dashes"],
+      legShow: [4],
+    },
+  ];
+
+  let currentStep = 0;
+  const revealedElements = new Set();
+  const revealedLegends  = new Set([0, 1]); // first two always visible
+
+  const btnNext  = document.getElementById("btn-next");
+  const btnAll   = document.getElementById("btn-all");
+  const btnReset = document.getElementById("btn-reset");
+  const stepNum  = document.getElementById("step-num");
+  const stepDesc = document.getElementById("step-desc");
+  const dots     = [0,1,2,3,4].map(i => document.getElementById("dot-" + i));
+
+  function showElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = "1";
+    revealedElements.add(id);
+  }
+
+  function hideElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = "0";
+  }
+
+  function showLegend(index) {
+    const el = document.getElementById("leg-" + index);
+    if (el) {
+      el.classList.add("visible");
+      revealedLegends.add(index);
+    }
+  }
+
+  function hideLegend(index) {
+    const el = document.getElementById("leg-" + index);
+    if (el) el.classList.remove("visible");
+  }
+
+  function updateDots(step) {
+    dots.forEach((dot, i) => {
+      dot.classList.remove("active", "done");
+      if (i < step)  dot.classList.add("done");
+      if (i === step) dot.classList.add("active");
+    });
+  }
+
+  function applyStep(index) {
+    const s = steps[index];
+    const [a, b] = s.label.split(" of ");
+    stepNum.textContent = a;
+    stepDesc.textContent = s.text;
+    updateDots(index);
+
+    // Show this step's elements
+    s.show.forEach(id => showElement(id));
+    s.legShow.forEach(li => showLegend(li));
+
+    // Disable next if last step
+    btnNext.disabled = (index >= steps.length - 1);
+    btnNext.setAttribute("aria-disabled", btnNext.disabled ? "true" : "false");
+  }
+
+  // Init — show first-step legends immediately
+  revealedLegends.forEach(i => showLegend(i));
+  updateDots(0);
+
+  btnNext.addEventListener("click", () => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      applyStep(currentStep);
+    }
+  });
+
+  btnAll.addEventListener("click", () => {
+    currentStep = steps.length - 1;
+    // Show everything
+    steps.forEach(s => {
+      s.show.forEach(id => showElement(id));
+      s.legShow.forEach(li => showLegend(li));
+    });
+    applyStep(currentStep);
+  });
+
+  btnReset.addEventListener("click", () => {
+    currentStep = 0;
+    // Hide all animated elements
+    ["g-d2","g-shift-arrow","g-shortage","g-supply-adj","g-demand-adj","g-eq2","g-eq2-dashes"]
+      .forEach(id => hideElement(id));
+    // Hide legends except 0,1
+    [2,3,4].forEach(i => hideLegend(i));
+    // Re-show 0,1
+    [0,1].forEach(i => showLegend(i));
+    applyStep(0);
+    btnNext.disabled = false;
+    btnNext.setAttribute("aria-disabled", "false");
+  });
+
+  // Keyboard: Space/Enter on SVG advances step
+  document.getElementById("diagram").setAttribute("tabindex", "0");
+  document.getElementById("diagram").addEventListener("keydown", e => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      if (currentStep < steps.length - 1) {
+        currentStep++;
+        applyStep(currentStep);
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+ 

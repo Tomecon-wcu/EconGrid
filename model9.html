@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supply & Demand — Interactive Model</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --border: #252a35;
+    --demand: #f4a261;
+    --supply-orig: #52b788;
+    --supply-new: #e63946;
+    --eq-dot: #ffd166;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --shortage: #e63946;
+    --surplus: #52b788;
+    --accent: #a8dadc;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 0.4rem;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    position: relative;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+  }
+
+  .card h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Slider */
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.5rem;
+  }
+
+  .slider-label span:first-child {
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  .slider-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--supply-new);
+    transition: color 0.3s;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--supply-new);
+    border: 2px solid var(--bg);
+    transition: background 0.2s;
+  }
+
+  input[type=range]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  /* Stats */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.84rem;
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+
+  .stat-label { color: var(--muted); }
+  .stat-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Market status badge */
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: all 0.4s ease;
+    border: 1px solid transparent;
+  }
+
+  .status-badge.equilibrium {
+    background: rgba(82,183,136,0.12);
+    border-color: rgba(82,183,136,0.3);
+    color: var(--supply-orig);
+  }
+
+  .status-badge.shortage {
+    background: rgba(230,57,70,0.12);
+    border-color: rgba(230,57,70,0.3);
+    color: var(--shortage);
+  }
+
+  .status-badge.surplus {
+    background: rgba(82,183,136,0.12);
+    border-color: rgba(82,183,136,0.3);
+    color: var(--supply-orig);
+  }
+
+  .status-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse 1.4s infinite;
+  }
+
+  .equilibrium .status-dot { background: var(--supply-orig); }
+  .shortage .status-dot { background: var(--shortage); }
+  .surplus .status-dot { background: var(--surplus); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  /* Adjustment chain */
+  .chain {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding-top: 0.5rem;
+  }
+
+  .chain-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: all 0.4s ease;
+  }
+
+  .chain-step.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .chain-arrow { color: var(--accent); font-weight: 700; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem 1.2rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    padding-top: 0.8rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legend-line {
+    width: 24px; height: 3px;
+    border-radius: 2px;
+  }
+
+  .legend-line.dashed {
+    background: repeating-linear-gradient(to right, currentColor 0, currentColor 4px, transparent 4px, transparent 8px);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Supply &amp; Demand Model</h1>
+  <p>Microeconomics · Market Adjustment · Decrease in Supply</p>
+</header>
+
+<div class="layout" role="main">
+  <div class="chart-panel" aria-label="Supply and demand graph">
+    <canvas id="chart" width="600" height="500" role="img" aria-label="Interactive supply and demand graph showing equilibrium and market shifts"></canvas>
+    <div class="legend" aria-label="Graph legend">
+      <div class="legend-item"><div class="legend-line" style="background:var(--demand)"></div> Demand (D)</div>
+      <div class="legend-item"><div class="legend-line" style="background:var(--supply-orig); opacity:0.45"></div> Original Supply (S)</div>
+      <div class="legend-item"><div class="legend-line" style="background:var(--supply-new)"></div> New Supply (S₁)</div>
+      <div class="legend-item"><div class="legend-line dashed" style="color:var(--eq-dot)"></div> Equilibrium</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+
+    <div class="card">
+      <h3>Supply Shift Control</h3>
+      <div class="slider-label">
+        <span>Decrease in Supply</span>
+        <span class="slider-value" id="shiftLabel" aria-live="polite">0%</span>
+      </div>
+      <input type="range" id="shiftSlider" min="0" max="100" value="0"
+             aria-label="Supply decrease percentage slider"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    </div>
+
+    <div class="card">
+      <h3>Market Equilibrium</h3>
+      <div class="stat-row">
+        <span class="stat-label">Orig. Price</span>
+        <span class="stat-val" id="origPrice">$15.00</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">New Price</span>
+        <span class="stat-val" id="newPrice">$15.00</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Orig. Qty</span>
+        <span class="stat-val" id="origQty">10,000</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">New Qty</span>
+        <span class="stat-val" id="newQty">10,000</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Qty Demanded</span>
+        <span class="stat-val" id="qd">10,000</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Qty Supplied</span>
+        <span class="stat-val" id="qs">10,000</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Market Status</h3>
+      <div class="status-badge equilibrium" id="statusBadge" role="status" aria-live="polite">
+        <div class="status-dot"></div>
+        <span id="statusText">Market in Equilibrium</span>
+      </div>
+      <div class="chain" id="adjustChain" aria-label="Market adjustment steps">
+        <div class="chain-step" id="step1">
+          <span class="chain-arrow">→</span><span id="step1text"></span>
+        </div>
+        <div class="chain-step" id="step2">
+          <span class="chain-arrow">→</span><span id="step2text"></span>
+        </div>
+        <div class="chain-step" id="step3">
+          <span class="chain-arrow">→</span><span id="step3text"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── MODEL PARAMETERS ────────────────────────────────────────────────────────
+// Initial equilibrium: Price = $15, Quantity = 10,000
+// Demand: Qd = 20000 - 666.67*P  →  inverse: P = 30 - (3/2000)*Q
+// Supply: Qs = -10000 + 1333.33*P → inverse: P = 7.5 + (3/4000)*Q
+// Equilibrium: 30 - (3/2000)*Q = 7.5 + (3/4000)*Q → Q=10000, P=15 ✓
+
+const P_EQ  = 15;
+const Q_EQ  = 10000;
+const P_MAX = 30;
+const Q_MAX = 20000;
+const P_MIN = 0;
+
+// Demand: inverse P = P_MAX - (P_MAX/Q_MAX)*Q
+function demandP(q) { return P_MAX - (P_MAX / Q_MAX) * q; }
+function demandQ(p) { return Q_MAX * (1 - p / P_MAX); }
+
+// Supply (original): P = 7.5 + (7.5/10000)*Q (passes through (0,7.5) and (10000,15))
+function supplyP(q, shift) {
+  // shift=0: original; shift=1: fully shifted left (intercept rises to ~22.5)
+  const intercept = 7.5 + shift * 7.5; // vertical intercept rises
+  return intercept + (7.5 / Q_EQ) * q;
+}
+function supplyQ(p, shift) {
+  const intercept = 7.5 + shift * 7.5;
+  return (p - intercept) * (Q_EQ / 7.5);
+}
+
+// Equilibrium: demandP(q) = supplyP(q, shift) → solve for q
+function findEquilibrium(shift) {
+  // P_MAX - (P_MAX/Q_MAX)*q = intercept + slope*q
+  // slope = 7.5/Q_EQ
+  const intercept = 7.5 + shift * 7.5;
+  const slope = 7.5 / Q_EQ;
+  const dSlope = P_MAX / Q_MAX;
+  // P_MAX - intercept = (dSlope + slope)*q
+  const q = (P_MAX - intercept) / (dSlope + slope);
+  const p = demandP(q);
+  return { q: Math.max(0, q), p: Math.max(0, p) };
+}
+
+// ─── CANVAS SETUP ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+const PAD = { top: 30, right: 40, bottom: 55, left: 65 };
+let W, H, plotW, plotH;
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  W = rect.width;
+  H = rect.height;
+  plotW = W - PAD.left - PAD.right;
+  plotH = H - PAD.top - PAD.bottom;
+  draw(currentShift);
+}
+
+function toX(q) { return PAD.left + (q / Q_MAX) * plotW; }
+function toY(p) { return PAD.top + plotH - (p / P_MAX) * plotH; }
+
+function fromX(px) { return ((px - PAD.left) / plotW) * Q_MAX; }
+function fromY(py) { return ((PAD.top + plotH - py) / plotH) * P_MAX; }
+
+// ─── DRAW ─────────────────────────────────────────────────────────────────────
+let currentShift = 0;
+
+function draw(shift) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(37,42,53,0.8)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const p = (P_MAX / 4) * i;
+    const y = toY(p);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + plotW, y); ctx.stroke();
+  }
+  for (let i = 0; i <= 4; i++) {
+    const q = (Q_MAX / 4) * i;
+    const x = toX(q);
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + plotH); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#3a4050';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top);
+  ctx.lineTo(PAD.left, PAD.top + plotH);
+  ctx.lineTo(PAD.left + plotW, PAD.top + plotH);
+  ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = '#6b7280';
+  ctx.font = "11px 'IBM Plex Mono', monospace";
+  ctx.textAlign = 'right';
+
+  for (let i = 0; i <= 4; i++) {
+    const p = (P_MAX / 4) * i;
+    ctx.fillText('$' + p.toFixed(0), PAD.left - 8, toY(p) + 4);
+  }
+
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const q = (Q_MAX / 4) * i;
+    ctx.fillText((q / 1000).toFixed(0) + 'k', toX(q), PAD.top + plotH + 18);
+  }
+
+  // Axis titles
+  ctx.save();
+  ctx.translate(14, PAD.top + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = "12px 'IBM Plex Sans', sans-serif";
+  ctx.fillText('Price ($)', 0, 0);
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = "12px 'IBM Plex Sans', sans-serif";
+  ctx.fillText('Quantity', PAD.left + plotW / 2, H - 8);
+
+  // ── Demand curve ──
+  ctx.beginPath();
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--demand').trim() || '#f4a261';
+  ctx.lineWidth = 2.5;
+  ctx.moveTo(toX(0), toY(P_MAX));
+  ctx.lineTo(toX(Q_MAX), toY(0));
+  ctx.stroke();
+
+  // Label D
+  ctx.fillStyle = '#f4a261';
+  ctx.font = "bold 13px 'IBM Plex Sans', sans-serif";
+  ctx.textAlign = 'left';
+  ctx.fillText('D', toX(Q_MAX) - 20, toY(0) - 10);
+
+  // ── Original supply curve (faded if shifted) ──
+  const origAlpha = shift > 0.02 ? 0.3 : 1;
+  ctx.globalAlpha = origAlpha;
+  ctx.beginPath();
+  ctx.strokeStyle = '#52b788';
+  ctx.lineWidth = 2.5;
+  ctx.moveTo(toX(0), toY(supplyP(0, 0)));
+  ctx.lineTo(toX(Q_MAX * 0.7), toY(supplyP(Q_MAX * 0.7, 0)));
+  ctx.stroke();
+
+  ctx.fillStyle = '#52b788';
+  ctx.font = "bold 13px 'IBM Plex Sans', sans-serif";
+  ctx.textAlign = 'left';
+  const origLabelQ = Q_MAX * 0.68;
+  ctx.fillText('S', toX(origLabelQ) + 4, toY(supplyP(origLabelQ, 0)) - 6);
+  ctx.globalAlpha = 1;
+
+  // ── New supply curve ──
+  if (shift > 0.01) {
+    ctx.beginPath();
+    ctx.strokeStyle = '#e63946';
+    ctx.lineWidth = 2.5;
+    const s1StartQ = Math.max(0, supplyQ(0, shift));
+    ctx.moveTo(toX(0), toY(supplyP(0, shift)));
+    ctx.lineTo(toX(Q_MAX * 0.6), toY(supplyP(Q_MAX * 0.6, shift)));
+    ctx.stroke();
+
+    ctx.fillStyle = '#e63946';
+    ctx.font = "bold 13px 'IBM Plex Sans', sans-serif";
+    const newLabelQ = Q_MAX * 0.55;
+    ctx.fillText('S₁', toX(newLabelQ) + 4, toY(supplyP(newLabelQ, shift)) - 6);
+  }
+
+  // ── Equilibria ──
+  const origEq = { q: Q_EQ, p: P_EQ };
+  const newEq  = findEquilibrium(shift);
+
+  // Dashed lines to original eq
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = 'rgba(255,209,102,0.35)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(toX(origEq.q), toY(origEq.p));
+  ctx.lineTo(toX(origEq.q), toY(0));
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(toX(origEq.q), toY(origEq.p));
+  ctx.lineTo(toX(0), toY(origEq.p));
+  ctx.stroke();
+
+  // Dashed lines to new eq (if shifted)
+  if (shift > 0.02) {
+    ctx.strokeStyle = 'rgba(230,57,70,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(toX(newEq.q), toY(newEq.p));
+    ctx.lineTo(toX(newEq.q), toY(0));
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(toX(newEq.q), toY(newEq.p));
+    ctx.lineTo(toX(0), toY(newEq.p));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // ── Shortage/surplus highlight at original price ──
+  if (shift > 0.02) {
+    const origPrice = origEq.p;
+    const qd = demandQ(origPrice);
+    const qs = Math.max(0, supplyQ(origPrice, shift));
+    if (qd > qs) {
+      // Shortage — shaded horizontal band
+      ctx.fillStyle = 'rgba(230,57,70,0.08)';
+      ctx.fillRect(toX(qs), toY(origPrice) - 16, toX(qd) - toX(qs), 32);
+
+      // Arrow
+      const midX = (toX(qs) + toX(qd)) / 2;
+      const midY = toY(origPrice);
+      ctx.fillStyle = 'rgba(230,57,70,0.7)';
+      ctx.font = "11px 'IBM Plex Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.fillText('SHORTAGE', midX, midY + 28);
+    }
+  }
+
+  // Dot: original eq
+  ctx.beginPath();
+  ctx.arc(toX(origEq.q), toY(origEq.p), 6, 0, Math.PI * 2);
+  ctx.fillStyle = shift > 0.02 ? 'rgba(255,209,102,0.4)' : '#ffd166';
+  ctx.fill();
+  ctx.strokeStyle = '#0d0f14';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Dot: new eq
+  if (shift > 0.02) {
+    ctx.beginPath();
+    ctx.arc(toX(newEq.q), toY(newEq.p), 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#e63946';
+    ctx.fill();
+    ctx.strokeStyle = '#0d0f14';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // New eq label
+    ctx.fillStyle = '#e63946';
+    ctx.font = "11px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'left';
+    ctx.fillText(`E₁ ($${newEq.p.toFixed(2)})`, toX(newEq.q) + 10, toY(newEq.p) - 8);
+  }
+
+  // Original eq label
+  ctx.fillStyle = shift > 0.02 ? 'rgba(255,209,102,0.5)' : '#ffd166';
+  ctx.font = "11px 'IBM Plex Mono', monospace";
+  ctx.textAlign = 'left';
+  ctx.fillText(`E ($${origEq.p.toFixed(2)})`, toX(origEq.q) + 10, toY(origEq.p) - 8);
+}
+
+// ─── UI UPDATE ───────────────────────────────────────────────────────────────
+function updateUI(shift) {
+  const origEq = { q: Q_EQ, p: P_EQ };
+  const newEq  = findEquilibrium(shift);
+  const qd = demandQ(origEq.p);
+  const qs = Math.max(0, supplyQ(origEq.p, shift));
+  const gap = qd - qs;
+
+  document.getElementById('origPrice').textContent = '$' + origEq.p.toFixed(2);
+  document.getElementById('newPrice').textContent  = '$' + newEq.p.toFixed(2);
+  document.getElementById('origQty').textContent   = origEq.q.toLocaleString();
+  document.getElementById('newQty').textContent    = Math.round(newEq.q).toLocaleString();
+  document.getElementById('qd').textContent        = Math.round(qd).toLocaleString();
+  document.getElementById('qs').textContent        = Math.round(qs).toLocaleString();
+
+  document.getElementById('shiftLabel').textContent = Math.round(shift * 100) + '%';
+  document.getElementById('shiftSlider').setAttribute('aria-valuenow', Math.round(shift * 100));
+
+  const badge = document.getElementById('statusBadge');
+  const statusText = document.getElementById('statusText');
+  const steps = ['step1','step2','step3'];
+
+  if (shift < 0.02) {
+    badge.className = 'status-badge equilibrium';
+    statusText.textContent = 'Market in Equilibrium';
+    steps.forEach(s => { document.getElementById(s).classList.remove('visible'); });
+  } else if (gap > 0) {
+    badge.className = 'status-badge shortage';
+    statusText.textContent = `Shortage: ${Math.round(gap).toLocaleString()} units`;
+
+    document.getElementById('step1text').textContent = 'Supply ↓ → Shortage at old price';
+    document.getElementById('step2text').textContent = 'Price rises → QD falls';
+    document.getElementById('step3text').textContent = 'Price rises → QS rises → New Eq.';
+
+    setTimeout(() => {
+      document.getElementById('step1').classList.add('visible');
+      setTimeout(() => document.getElementById('step2').classList.add('visible'), 180);
+      setTimeout(() => document.getElementById('step3').classList.add('visible'), 360);
+    }, 10);
+  }
+}
+
+// ─── SLIDER EVENT ─────────────────────────────────────────────────────────────
+const slider = document.getElementById('shiftSlider');
+
+slider.addEventListener('input', () => {
+  currentShift = slider.value / 100;
+  draw(currentShift);
+  updateUI(currentShift);
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+// Use ResizeObserver for responsive canvas
+const ro = new ResizeObserver(() => resize());
+ro.observe(canvas);
+
+// Initial draw
+setTimeout(resize, 50);
+updateUI(0);
+</script>
+</body>
+</html>
+
+	
+

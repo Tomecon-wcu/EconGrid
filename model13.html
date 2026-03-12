@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supply & Demand: Milk Market</title>
+  <meta name="description" content="Interactive supply and demand model showing a decrease in supply and milk shortage" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Fraunces:wght@300;600;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e0f14;
+      --surface: #16181f;
+      --border: #2a2d3a;
+      --supply-old: #4ade80;
+      --supply-new: #f97316;
+      --demand: #60a5fa;
+      --eq-old: #a3e635;
+      --eq-new: #fb923c;
+      --shortage: #f43f5e;
+      --text: #e2e4ef;
+      --muted: #7c7f96;
+      --accent: #c084fc;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-family: 'Fraunces', serif;
+      font-weight: 900;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #60a5fa, #c084fc, #f97316);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 820px;
+    }
+
+    /* ── Canvas ── */
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border-radius: 0.5rem;
+      background: #11121a;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.5rem;
+      margin-top: 1rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .swatch {
+      width: 26px;
+      height: 4px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .swatch.dashed {
+      background: repeating-linear-gradient(90deg, currentColor 0, currentColor 5px, transparent 5px, transparent 9px);
+    }
+
+    /* ── Slider Section ── */
+    .slider-section {
+      margin-top: 1.75rem;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.6rem;
+    }
+
+    .slider-label span:first-child {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .slider-label .val {
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--supply-old), var(--supply-new));
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid var(--accent);
+      box-shadow: 0 0 8px rgba(192,132,252,0.5);
+      transition: box-shadow 0.2s;
+    }
+
+    input[type="range"]:focus::-webkit-slider-thumb,
+    input[type="range"]:hover::-webkit-slider-thumb {
+      box-shadow: 0 0 14px rgba(192,132,252,0.9);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid var(--accent);
+    }
+
+    /* ── Stats Panel ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .stat-box {
+      background: #0e0f14;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-box .label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+    }
+
+    .stat-box .value {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 1.5rem;
+    }
+
+    .stat-box .delta {
+      font-size: 0.7rem;
+      margin-top: 0.2rem;
+    }
+
+    .up   { color: var(--eq-new); }
+    .down { color: var(--shortage); }
+    .neu  { color: var(--muted); }
+
+    /* ── Explainer ── */
+    .explainer {
+      margin-top: 1.5rem;
+      padding: 1rem 1.25rem;
+      background: #0e0f14;
+      border-left: 3px solid var(--shortage);
+      border-radius: 0 0.5rem 0.5rem 0;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .explainer strong { color: var(--text); }
+
+    /* ── Skip link (accessibility) ── */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      background: var(--accent);
+      color: #000;
+      padding: 0.5rem 1rem;
+      font-weight: 700;
+      border-radius: 0 0 0.5rem 0;
+      z-index: 100;
+    }
+    .skip-link:focus { left: 0; }
+
+    /* ── SR only ── */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 520px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#controls" class="skip-link">Skip to controls</a>
+
+  <header>
+    <h1>Milk Market Model</h1>
+    <p>Principles of Microeconomics · Supply &amp; Demand Shift</p>
+  </header>
+
+  <main class="card" role="main" aria-label="Interactive supply and demand model">
+
+    <div class="chart-wrap">
+      <canvas id="chart" aria-label="Supply and demand graph for the milk market" role="img"></canvas>
+    </div>
+
+    <div class="legend" aria-label="Chart legend">
+      <div class="legend-item"><div class="swatch" style="background:var(--demand)"></div><span>Demand (D)</span></div>
+      <div class="legend-item"><div class="swatch" style="background:var(--supply-old)"></div><span>Original Supply (S₁)</span></div>
+      <div class="legend-item"><div class="swatch" style="background:var(--supply-new)"></div><span>New Supply (S₂)</span></div>
+      <div class="legend-item"><div class="swatch" style="background:var(--eq-old); height:10px; width:10px; border-radius:50%;"></div><span>Original Equilibrium</span></div>
+      <div class="legend-item"><div class="swatch" style="background:var(--eq-new); height:10px; width:10px; border-radius:50%;"></div><span>New Equilibrium</span></div>
+      <div class="legend-item"><div class="swatch" style="background:var(--shortage)"></div><span>Shortage (gap)</span></div>
+    </div>
+
+    <!-- Slider -->
+    <section class="slider-section" id="controls">
+      <div class="slider-label">
+        <span>Supply Shift</span>
+        <span class="val" id="shiftLabel" aria-live="polite">0% decrease</span>
+      </div>
+      <label for="shiftSlider" class="sr-only">
+        Drag to decrease supply. 0 is no change, 100 is maximum decrease.
+      </label>
+      <input
+        type="range"
+        id="shiftSlider"
+        min="0" max="100" value="0" step="1"
+        aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+        aria-label="Supply decrease slider"
+        aria-describedby="sliderDesc"
+      />
+      <p id="sliderDesc" class="sr-only">
+        Moving this slider to the right decreases supply, shifting the supply curve left,
+        raising the equilibrium price, reducing equilibrium quantity, and creating a shortage at the original price.
+      </p>
+    </section>
+
+    <!-- Stats -->
+    <div class="stats" aria-label="Market statistics" aria-live="polite" aria-atomic="true">
+      <div class="stat-box">
+        <div class="label">Equilibrium Price</div>
+        <div class="value up" id="statPrice">$1.00</div>
+        <div class="delta" id="statPriceDelta neu">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Qty Demanded</div>
+        <div class="value down" id="statQd">15 gal</div>
+        <div class="delta" id="statQdDelta neu">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Qty Supplied</div>
+        <div class="value" id="statQs" style="color:var(--supply-old)">15 gal</div>
+        <div class="delta" id="statQsDelta neu">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Shortage</div>
+        <div class="value" id="statShortage" style="color:var(--shortage)">0 gal</div>
+        <div class="delta" id="statShortageDelta neu">—</div>
+      </div>
+    </div>
+
+    <!-- Explainer -->
+    <div class="explainer" role="note" aria-label="Economic explanation">
+      <p id="explainerText">
+        <strong>Original Equilibrium:</strong> Price = <strong>$1.00</strong>, Quantity = <strong>15 gallons</strong>.
+        Move the slider to simulate a decrease in milk supply (e.g., a drought reducing dairy output).
+        Watch how the supply curve shifts <em>left</em>, creating upward pressure on price.
+      </p>
+    </div>
+
+  </main>
+
+  <script>
+  (function () {
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+    const slider = document.getElementById('shiftSlider');
+
+    // ── Model parameters ──────────────────────────────────────────────────────
+    // P = price axis (y), Q = quantity axis (x)
+    // Demand: P = 3 - 0.133*Q  (at Q=15 → P=1; at Q=0 → P=3; at Q=22.5 → P=0)
+    // Supply: P = -1 + 0.133*Q  (at Q=15 → P=1; slope mirrors demand)
+    // Shift: supply curve moves left by shiftQ gallons
+
+    const P_BASE = 1.00;   // original equilibrium price  ($)
+    const Q_BASE = 15;     // original equilibrium quantity (gallons)
+
+    // Linear demand:  P = demandIntercept - demandSlope * Q
+    const demandIntercept = 3.0;
+    const demandSlope     = (demandIntercept - P_BASE) / Q_BASE;  // ≈ 0.1333
+
+    // Linear supply:  P = -supplyIntercept + supplySlope * Q
+    const supplyIntercept = -1.0;
+    const supplySlope     = demandSlope; // symmetric
+
+    // ── Canvas sizing ─────────────────────────────────────────────────────────
+    const PAD = { top: 30, right: 40, bottom: 60, left: 70 };
+    const Q_MAX = 28, P_MAX = 3.5;
+
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr  = window.devicePixelRatio || 1;
+      canvas.width  = rect.width * dpr;
+      canvas.height = Math.round(rect.width * 0.62) * dpr;
+      canvas.style.height = Math.round(rect.width * 0.62) + 'px';
+      ctx.scale(dpr, dpr);
+      draw(+slider.value);
+    }
+
+    function toX(q) {
+      const w = canvas.width / (window.devicePixelRatio || 1);
+      return PAD.left + (q / Q_MAX) * (w - PAD.left - PAD.right);
+    }
+
+    function toY(p) {
+      const h = canvas.height / (window.devicePixelRatio || 1);
+      return PAD.top + (1 - p / P_MAX) * (h - PAD.top - PAD.bottom);
+    }
+
+    // ── Computed equilibrium ──────────────────────────────────────────────────
+    // After shift: new supply: P = -supplyIntercept + supplySlope*(Q + shiftQ)
+    // = (-supplyIntercept + supplySlope*shiftQ) + supplySlope*Q
+    // Equilibrium with demand: solve P equal
+    // demandIntercept - demandSlope*Q = (-supplyIntercept + supplySlope*shiftQ) + supplySlope*Q
+    function computeEq(shiftQ) {
+      const newSupplyIntercept = -supplyIntercept + supplySlope * shiftQ; // effective constant
+      const Q_eq = (demandIntercept - newSupplyIntercept) / (demandSlope + supplySlope);
+      const P_eq = demandIntercept - demandSlope * Q_eq;
+      // Qty supplied at OLD price $1.00 after shift
+      const Qs_at_old_price = (P_BASE - (-supplyIntercept)) / supplySlope - shiftQ;
+      // Qty demanded at OLD price = Q_BASE (demand unchanged)
+      const shortage = Math.max(0, Q_BASE - Math.max(0, Qs_at_old_price));
+      return { Q_eq, P_eq, shortage, Qs_at_old_price: Math.max(0, Qs_at_old_price) };
+    }
+
+    // ── Draw ──────────────────────────────────────────────────────────────────
+    function draw(pct) {
+      const w = canvas.width  / (window.devicePixelRatio || 1);
+      const h = canvas.height / (window.devicePixelRatio || 1);
+      ctx.clearRect(0, 0, w, h);
+
+      const shiftQ = (pct / 100) * 9; // max shift = 9 gallons
+      const eq = computeEq(shiftQ);
+
+      // Grid
+      ctx.strokeStyle = '#1e2030';
+      ctx.lineWidth = 1;
+      for (let q = 0; q <= Q_MAX; q += 5) {
+        ctx.beginPath(); ctx.moveTo(toX(q), PAD.top); ctx.lineTo(toX(q), h - PAD.bottom); ctx.stroke();
+      }
+      for (let p = 0; p <= P_MAX; p += 0.5) {
+        ctx.beginPath(); ctx.moveTo(PAD.left, toY(p)); ctx.lineTo(w - PAD.right, toY(p)); ctx.stroke();
+      }
+
+      // Axes
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, h - PAD.bottom); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PAD.left, h - PAD.bottom); ctx.lineTo(w - PAD.right, h - PAD.bottom); ctx.stroke();
+
+      // Axis labels
+      ctx.fillStyle = '#7c7f96';
+      ctx.font = '11px Space Mono, monospace';
+      ctx.textAlign = 'center';
+      for (let q = 0; q <= Q_MAX; q += 5) {
+        ctx.fillText(q, toX(q), h - PAD.bottom + 18);
+      }
+      ctx.textAlign = 'right';
+      for (let p = 0; p <= P_MAX; p += 0.5) {
+        ctx.fillText('$' + p.toFixed(2), PAD.left - 8, toY(p) + 4);
+      }
+
+      // Axis titles
+      ctx.fillStyle = '#9ca3b8';
+      ctx.font = '12px Space Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Quantity (gallons of milk)', PAD.left + (w - PAD.left - PAD.right) / 2, h - 8);
+      ctx.save();
+      ctx.translate(14, PAD.top + (h - PAD.top - PAD.bottom) / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Price ($)', 0, 0);
+      ctx.restore();
+
+      // ── Shortage bracket at old price ───────────────────────────────────────
+      if (pct > 0) {
+        const yOld = toY(P_BASE);
+        const xQd  = toX(Q_BASE);
+        const xQs  = toX(eq.Qs_at_old_price);
+
+        // Shaded shortage region
+        ctx.fillStyle = 'rgba(244,63,94,0.12)';
+        ctx.fillRect(xQs, yOld - 18, xQd - xQs, 36);
+
+        // Arrow / bracket
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(xQs, yOld);
+        ctx.lineTo(xQd, yOld);
+        ctx.stroke();
+
+        // Arrow heads
+        function arrowHead(x, y, dir) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + dir * 8, y - 5);
+          ctx.lineTo(x + dir * 8, y + 5);
+          ctx.closePath();
+          ctx.fillStyle = '#f43f5e';
+          ctx.fill();
+        }
+        arrowHead(xQs, yOld, 1);
+        arrowHead(xQd, yOld, -1);
+
+        ctx.fillStyle = '#f43f5e';
+        ctx.font = 'bold 11px Space Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('SHORTAGE', (xQs + xQd) / 2, yOld - 24);
+      }
+
+      // ── Dashed ref lines for new eq ─────────────────────────────────────────
+      if (pct > 0) {
+        ctx.strokeStyle = 'rgba(251,146,60,0.45)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.moveTo(toX(eq.Q_eq), toY(eq.P_eq)); ctx.lineTo(toX(eq.Q_eq), h - PAD.bottom); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(toX(eq.Q_eq), toY(eq.P_eq)); ctx.lineTo(PAD.left, toY(eq.P_eq)); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // ── Dashed ref lines for original eq ───────────────────────────────────
+      ctx.strokeStyle = 'rgba(163,230,53,0.3)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath(); ctx.moveTo(toX(Q_BASE), toY(P_BASE)); ctx.lineTo(toX(Q_BASE), h - PAD.bottom); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(toX(Q_BASE), toY(P_BASE)); ctx.lineTo(PAD.left, toY(P_BASE)); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // ── Demand curve ───────────────────────────────────────────────────────
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let q = 0; q <= Q_MAX; q += 0.5) {
+        const p = demandIntercept - demandSlope * q;
+        if (p < 0 || p > P_MAX) continue;
+        if (q === 0) ctx.moveTo(toX(q), toY(p)); else ctx.lineTo(toX(q), toY(p));
+      }
+      ctx.stroke();
+      // Label
+      const dLabelQ = 23;
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = 'bold 13px Space Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('D', toX(dLabelQ) + 4, toY(demandIntercept - demandSlope * dLabelQ) - 4);
+
+      // ── Original supply curve ──────────────────────────────────────────────
+      ctx.strokeStyle = pct > 0 ? 'rgba(74,222,128,0.35)' : '#4ade80';
+      ctx.lineWidth = pct > 0 ? 1.5 : 2.5;
+      ctx.setLineDash(pct > 0 ? [6, 4] : []);
+      ctx.beginPath();
+      for (let q = 0; q <= Q_MAX; q += 0.5) {
+        const p = supplyIntercept + supplySlope * q;
+        if (p < 0 || p > P_MAX) continue;
+        if (q === 0 || p < 0) ctx.moveTo(toX(q), toY(p)); else ctx.lineTo(toX(q), toY(p));
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const sOldQ = Q_MAX;
+      const sOldP = supplyIntercept + supplySlope * sOldQ;
+      if (sOldP <= P_MAX) {
+        ctx.fillStyle = pct > 0 ? 'rgba(74,222,128,0.5)' : '#4ade80';
+        ctx.font = 'bold 13px Space Mono, monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(pct > 0 ? 'S₁' : 'S', toX(sOldQ) - 4, toY(sOldP) - 4);
+      }
+
+      // ── New supply curve (shifted) ─────────────────────────────────────────
+      if (pct > 0) {
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        let started = false;
+        for (let q = 0; q <= Q_MAX; q += 0.5) {
+          const p = supplyIntercept + supplySlope * (q + shiftQ);
+          if (p < 0 || p > P_MAX) continue;
+          if (!started) { ctx.moveTo(toX(q), toY(p)); started = true; } else ctx.lineTo(toX(q), toY(p));
+        }
+        ctx.stroke();
+
+        // Shift arrow midway on supply
+        const arrowQ = 10;
+        const p1 = supplyIntercept + supplySlope * arrowQ;
+        const p2 = supplyIntercept + supplySlope * (arrowQ + shiftQ);
+        if (p1 <= P_MAX && p2 <= P_MAX && p1 >= 0 && p2 >= 0) {
+          ctx.strokeStyle = 'rgba(249,115,22,0.7)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(toX(arrowQ), toY(p1));
+          ctx.lineTo(toX(arrowQ - shiftQ), toY(p2));
+          ctx.stroke();
+          // arrow head
+          ctx.fillStyle = 'rgba(249,115,22,0.9)';
+          ctx.beginPath();
+          ctx.arc(toX(arrowQ - shiftQ), toY(p2), 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Label S₂
+        const s2Q = sOldQ - shiftQ;
+        const s2P = supplyIntercept + supplySlope * (s2Q + shiftQ);
+        ctx.fillStyle = '#f97316';
+        ctx.font = 'bold 13px Space Mono, monospace';
+        ctx.textAlign = 'right';
+        if (s2P <= P_MAX && s2P >= 0) ctx.fillText('S₂', toX(s2Q) - 4, toY(s2P) - 4);
+      }
+
+      // ── Equilibrium dots ───────────────────────────────────────────────────
+      // Original
+      ctx.fillStyle = '#a3e635';
+      ctx.beginPath();
+      ctx.arc(toX(Q_BASE), toY(P_BASE), 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // New
+      if (pct > 0) {
+        ctx.fillStyle = '#fb923c';
+        ctx.beginPath();
+        ctx.arc(toX(eq.Q_eq), toY(eq.P_eq), 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ── Update stats ───────────────────────────────────────────────────────
+      const fmt2 = v => v.toFixed(2);
+      const fmt1 = v => v.toFixed(1);
+
+      document.getElementById('statPrice').textContent     = '$' + fmt2(eq.P_eq);
+      document.getElementById('statQd').textContent        = fmt1(eq.Q_eq) + ' gal';
+      document.getElementById('statQs').textContent        = fmt1(eq.Qs_at_old_price > 0 ? eq.Qs_at_old_price : eq.Q_eq) + ' gal';
+      document.getElementById('statShortage').textContent  = fmt1(eq.shortage) + ' gal';
+
+      const priceDelta = eq.P_eq - P_BASE;
+      const qdDelta    = eq.Q_eq - Q_BASE;
+
+      document.getElementById('statPriceDelta').textContent    = pct > 0 ? (priceDelta >= 0 ? '▲ +$' : '▼ -$') + fmt2(Math.abs(priceDelta)) + ' vs $1.00' : '— base level';
+      document.getElementById('statQdDelta').textContent       = pct > 0 ? (qdDelta >= 0 ? '▲ +' : '▼ ') + fmt1(qdDelta) + ' gal' : '— base level';
+      document.getElementById('statShortageDelta').textContent = pct > 0 ? eq.shortage > 0 ? '↑ shortage exists' : 'no shortage' : '— market clears';
+
+      const shiftLabel = document.getElementById('shiftLabel');
+      shiftLabel.querySelector('.val').textContent = pct + '% decrease';
+      slider.setAttribute('aria-valuenow', pct);
+      slider.setAttribute('aria-valuetext', pct + '% supply decrease. Price: $' + fmt2(eq.P_eq) + '. Quantity: ' + fmt1(eq.Q_eq) + ' gallons. Shortage: ' + fmt1(eq.shortage) + ' gallons.');
+
+      // Explainer text
+      const exp = document.getElementById('explainerText');
+      if (pct === 0) {
+        exp.innerHTML = `<strong>Original Equilibrium:</strong> Price = <strong>$1.00</strong>, Quantity = <strong>15 gallons</strong>. Move the slider right to simulate a decrease in milk supply (e.g., a drought reducing dairy output). Watch the supply curve shift <em>left</em>, creating upward pressure on price.`;
+      } else {
+        exp.innerHTML = `<strong>Supply decreased by ${pct}%.</strong> The supply curve shifted <em>left</em> from S₁ → S₂. New equilibrium: <strong>Price = $${fmt2(eq.P_eq)}</strong>, <strong>Qty = ${fmt1(eq.Q_eq)} gal</strong>. At the original price of <strong>$1.00</strong>, consumers still demand <strong>15 gal</strong> but producers only supply <strong>${fmt1(eq.Qs_at_old_price)} gal</strong> — a <strong style="color:var(--shortage)">shortage of ${fmt1(eq.shortage)} gallons</strong>. Price rises until the market clears at the new equilibrium.`;
+      }
+    }
+
+    slider.addEventListener('input', () => draw(+slider.value));
+    window.addEventListener('resize', resize);
+    resize();
+  })();
+  </script>
+</body>
+</html>
+

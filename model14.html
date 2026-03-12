@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Economics: Increase in Supply Model</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #f7f4ef;
+      --panel:       #ffffff;
+      --ink:         #1a1a2e;
+      --muted:       #6b6b80;
+      --demand:      #c0392b;
+      --supply-orig: #1a6b3a;
+      --supply-new:  #2ecc71;
+      --shortage:    #e67e22;
+      --eq-dot:      #8e44ad;
+      --accent:      #2563eb;
+      --border:      #e2ddd6;
+      --axis:        #444;
+    }
+
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 3rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      color: var(--ink);
+      line-height: 1.2;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: .4rem;
+      font-size: 1rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+      padding: 2rem;
+      width: 100%;
+      max-width: 820px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      margin-bottom: 1.5rem;
+      justify-content: center;
+    }
+
+    button {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: .95rem;
+      font-weight: 600;
+      padding: .55rem 1.4rem;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all .18s ease;
+    }
+    button:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    #btnAnimate {
+      background: var(--supply-new);
+      color: #fff;
+      border-color: #27ae60;
+    }
+    #btnAnimate:hover { background: #27ae60; }
+
+    #btnReset {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--border);
+    }
+    #btnReset:hover { border-color: var(--muted); }
+
+    /* SVG wrapper */
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      overflow: visible;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem 1.4rem;
+      margin-top: 1.5rem;
+      justify-content: center;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      font-size: .875rem;
+      color: var(--muted);
+    }
+    .legend-swatch {
+      width: 28px;
+      height: 4px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .legend-swatch.dashed {
+      background: repeating-linear-gradient(
+        90deg,
+        currentColor 0, currentColor 6px,
+        transparent 6px, transparent 12px
+      );
+    }
+
+    /* Description box */
+    .description {
+      margin-top: 1.5rem;
+      background: #f0f4ff;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.2rem;
+      font-size: .9rem;
+      line-height: 1.65;
+      color: var(--ink);
+    }
+    .description strong { color: var(--accent); }
+
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 0;
+      background: var(--accent);
+      color: #fff;
+      padding: .5rem 1rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 999;
+    }
+    .skip-link:focus { top: 8px; left: 8px; }
+
+    /* Arrow & label animations */
+    .animated { opacity: 0; transition: opacity .5s ease; }
+    .animated.visible { opacity: 1; }
+
+    /* Aria live region */
+    #live-status { position: absolute; left: -9999px; }
+  </style>
+</head>
+<body>
+  <a href="#chart" class="skip-link">Skip to chart</a>
+
+  <header>
+    <h1>Supply &amp; Demand: Increase in Supply</h1>
+    <p>An interactive economics model — Principles of Economics</p>
+  </header>
+
+  <div class="card" role="main">
+    <div class="controls" role="group" aria-label="Chart controls">
+      <button id="btnAnimate" aria-describedby="btn-desc">▶ Show Supply Increase</button>
+      <button id="btnReset">↺ Reset</button>
+    </div>
+    <p id="btn-desc" class="sr-only" style="position:absolute;left:-9999px">
+      Animate the rightward shift in supply and display resulting shortage and equilibrium changes.
+    </p>
+
+    <div class="chart-wrap" id="chart" tabindex="0" aria-label="Supply and demand graph. Press the button to animate an increase in supply.">
+      <svg viewBox="0 0 700 500" role="img" aria-labelledby="svgTitle svgDesc">
+        <title id="svgTitle">Supply and Demand: Increase in Supply</title>
+        <desc id="svgDesc">
+          A supply-and-demand graph showing the original supply curve S1 and demand curve D,
+          with an animated new supply curve S2 shifted to the right. Annotations show the shortage
+          at the original price P1, the increase in quantity supplied along S2, and the change in
+          quantity demanded along D as the market moves to the new equilibrium E2.
+        </desc>
+
+        <!-- ── Grid lines ── -->
+        <g stroke="#e8e4dc" stroke-width="1" aria-hidden="true">
+          <line x1="80" y1="60"  x2="660" y2="60" />
+          <line x1="80" y1="140" x2="660" y2="140"/>
+          <line x1="80" y1="220" x2="660" y2="220"/>
+          <line x1="80" y1="300" x2="660" y2="300"/>
+          <line x1="80" y1="380" x2="660" y2="380"/>
+          <line x1="160" y1="40" x2="160" y2="460"/>
+          <line x1="280" y1="40" x2="280" y2="460"/>
+          <line x1="400" y1="40" x2="400" y2="460"/>
+          <line x1="520" y1="40" x2="520" y2="460"/>
+          <line x1="640" y1="40" x2="640" y2="460"/>
+        </g>
+
+        <!-- ── Axes ── -->
+        <g stroke="var(--axis)" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <!-- Y axis -->
+          <line x1="80" y1="440" x2="80" y2="30"/>
+          <polygon points="80,26 75,38 85,38" fill="var(--axis)"/>
+          <!-- X axis -->
+          <line x1="80" y1="440" x2="660" y2="440"/>
+          <polygon points="664,440 652,435 652,445" fill="var(--axis)"/>
+        </g>
+
+        <!-- ── Axis labels ── -->
+        <text x="50" y="240" text-anchor="middle"
+          transform="rotate(-90 50 240)"
+          font-family="'Playfair Display',serif"
+          font-size="17" fill="var(--ink)" aria-hidden="true">Price (P)</text>
+        <text x="370" y="480"
+          text-anchor="middle"
+          font-family="'Playfair Display',serif"
+          font-size="17" fill="var(--ink)" aria-hidden="true">Quantity (Q)</text>
+
+        <!-- ── Demand curve D ── -->
+        <!-- D goes from top-left to bottom-right: (130,80)→(620,420) -->
+        <line id="demandLine"
+          x1="130" y1="80" x2="620" y2="420"
+          stroke="var(--demand)" stroke-width="3" stroke-linecap="round"/>
+        <text x="628" y="425"
+          font-family="'Source Sans 3',sans-serif" font-weight="700"
+          font-size="16" fill="var(--demand)" aria-hidden="true">D</text>
+
+        <!-- ── Original Supply curve S1 ── -->
+        <!-- S1 goes from bottom-left to top-right: (120,420)→(560,80) -->
+        <line id="supplyOrig"
+          x1="120" y1="420" x2="560" y2="80"
+          stroke="var(--supply-orig)" stroke-width="3" stroke-linecap="round"/>
+        <text x="568" y="78"
+          font-family="'Source Sans 3',sans-serif" font-weight="700"
+          font-size="16" fill="var(--supply-orig)" aria-hidden="true">S₁</text>
+
+        <!-- ── Equilibrium E1 ── -->
+        <!--
+          Intersection of D and S1:
+          D: from (130,80) to (620,420) → slope = (420-80)/(620-130) = 340/490 ≈ 0.694
+             y = 80 + 0.694*(x-130)
+          S1: from (120,420) to (560,80) → slope = (80-420)/(560-120) = -340/440 ≈ -0.773
+             y = 420 + (-0.773)*(x-120)
+          Solve: 80 + 0.694*(x-130) = 420 - 0.773*(x-120)
+                 80 + 0.694x - 90.2 = 420 - 0.773x + 92.76
+                 -10.2 + 0.694x = 512.76 - 0.773x
+                 1.467x = 522.96 → x ≈ 356.5 → y ≈ 80 + 0.694*(356.5-130) ≈ 237
+        -->
+        <circle id="eq1Dot" cx="357" cy="237"
+          r="7" fill="var(--eq-dot)" stroke="#fff" stroke-width="2"/>
+
+        <!-- P1 label + dashed lines -->
+        <line id="p1HorzDash" x1="80" y1="237" x2="357" y2="237"
+          stroke="var(--eq-dot)" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <line id="q1VertDash" x1="357" y1="237" x2="357" y2="440"
+          stroke="var(--eq-dot)" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+        <text x="68" y="241" text-anchor="end" font-size="14"
+          font-family="'Source Sans 3',sans-serif" font-weight="600"
+          fill="var(--eq-dot)" aria-hidden="true">P₁</text>
+        <text x="357" y="456" text-anchor="middle" font-size="13"
+          font-family="'Source Sans 3',sans-serif" font-weight="600"
+          fill="var(--eq-dot)" aria-hidden="true">Q₁</text>
+        <text x="357" y="225" text-anchor="middle" font-size="12"
+          font-family="'Source Sans 3',sans-serif" fill="var(--eq-dot)" aria-hidden="true">E₁</text>
+
+        <!-- ════════════════════════════════════════
+             ANIMATED ELEMENTS (start hidden)
+        ════════════════════════════════════════ -->
+
+        <!-- New Supply curve S2 (shifted right by ~130px) -->
+        <!--
+          S2 parallel shift: (120+130=250, 420) → (560+130=690 clipped to 660, y adjusted)
+          Keeping same slope as S1 and extending line fully within viewBox:
+          S2 from (250,420)→(660, 96) (approx)
+        -->
+        <line id="supplyNew" class="animated"
+          x1="250" y1="420" x2="660" y2="100"
+          stroke="var(--supply-new)" stroke-width="3.5"
+          stroke-linecap="round" stroke-dasharray="0"/>
+        <text id="supplyNewLabel" class="animated"
+          x="668" y="97"
+          font-family="'Source Sans 3',sans-serif" font-weight="700"
+          font-size="16" fill="var(--supply-new)" aria-hidden="true">S₂</text>
+
+        <!-- Shift arrow (horizontal, mid-height) -->
+        <g id="shiftArrow" class="animated" aria-hidden="true">
+          <defs>
+            <marker id="arrowGreen" markerWidth="10" markerHeight="7"
+              refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--supply-new)"/>
+            </marker>
+          </defs>
+          <line x1="470" y1="170" x2="570" y2="170"
+            stroke="var(--supply-new)" stroke-width="2.5"
+            marker-end="url(#arrowGreen)"/>
+          <text x="518" y="160" text-anchor="middle"
+            font-size="12" font-family="'Source Sans 3',sans-serif"
+            font-weight="600" fill="var(--supply-new)">Shift Right</text>
+        </g>
+
+        <!-- ── Equilibrium E2 ──
+          S2 intersects D:
+          S2: from (250,420) direction same slope as S1 = -340/440 = -0.7727
+            y = 420 - 0.7727*(x - 250)
+          D: y = 80 + 0.6939*(x - 130)
+          420 - 0.7727x + 193.2 = 80 + 0.6939x - 90.1
+          613.2 - 0.7727x = -10.1 + 0.6939x
+          623.3 = 1.4666x → x ≈ 424.9 → y = 80 + 0.6939*(424.9-130) ≈ 284.5
+          → E2 ≈ (425, 205)  (recalculate with precise numbers below)
+          Let's use:
+            D slope mD = (420-80)/(620-130) = 340/490
+            S2 slope mS = (420-80)/(120-560) = 340/(-440) ... wait S goes UP left to right
+            Actually S1: low Q → low P? No! Supply slopes upward: higher price → more supplied.
+            S1: (120,420) is bottom-left → high Q, low P? That's demand.
+            Let me re-examine:
+              Axes: Y = Price, X = Quantity
+              Supply upward sloping = as P rises Q supplied rises → line goes up-right
+              Demand downward sloping = as P rises Q demanded falls → line goes down-right
+
+            So in screen coords (Y increases downward):
+              High screen-Y = Low Price
+              Low screen-Y = High Price
+
+            D: starts top-right (high price, low qty) NO...
+            Standard graph: D starts top-LEFT (high P, low Q) → goes to bottom-RIGHT (low P, high Q)
+            In screen: top = high P (low screen-y), right = high Q (high screen-x)
+            D: (130, 80)=low Q high P → (620, 420)=high Q low P ✓ (downward sloping) ✓
+
+            S1: (120,420)=low Q low P → (560,80)=high Q high P ✓ (upward sloping) ✓
+
+          Now real intersection:
+          D: y = 80 + [(420-80)/(620-130)] * (x - 130) = 80 + (340/490)*(x-130)
+          S1: y = 420 + [(80-420)/(560-120)] * (x-120) = 420 - (340/440)*(x-120)
+
+          Set equal:
+          80 + (340/490)(x-130) = 420 - (340/440)(x-120)
+          80 + 0.6939(x-130) = 420 - 0.7727(x-120)
+          80 + 0.6939x - 90.2 = 420 - 0.7727x + 92.76
+          -10.2 + 0.6939x = 512.76 - 0.7727x
+          1.4666x = 522.96
+          x = 356.6  →  y = 80 + 0.6939*(356.6-130) = 80 + 157.2 = 237.2
+
+          E1 = (357, 237) ✓ (matches above)
+
+          S2: shifted right by 130: y = 420 - 0.7727*(x - 250)
+          Set equal to D:
+          80 + 0.6939(x-130) = 420 - 0.7727(x-250)
+          80 + 0.6939x - 90.2 = 420 - 0.7727x + 193.2
+          -10.2 + 0.6939x = 613.2 - 0.7727x
+          1.4666x = 623.4
+          x = 424.9 → y = 80 + 0.6939*(424.9-130) = 80 + 204.7 = 284.7... 
+
+          Hmm that gives y=285 which is LOWER on screen = lower price. That's correct:
+          more supply → lower equilibrium price, higher equilibrium quantity ✓
+
+          E2 = (425, 205) ... let me recompute y:
+          y = 420 - 0.7727*(424.9 - 250) = 420 - 0.7727*174.9 = 420 - 135.1 = 284.9
+          So E2 ≈ (425, 285)
+        -->
+
+        <circle id="eq2Dot" class="animated" cx="425" cy="285"
+          r="7" fill="#8e44ad" stroke="#fff" stroke-width="2"
+          opacity="0"/>
+
+        <!-- P2, Q2 dashed lines -->
+        <g id="eq2Lines" class="animated" opacity="0" aria-hidden="true">
+          <line x1="80" y1="285" x2="425" y2="285"
+            stroke="var(--eq-dot)" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+          <line x1="425" y1="285" x2="425" y2="440"
+            stroke="var(--eq-dot)" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>
+          <text x="68" y="289" text-anchor="end" font-size="14"
+            font-family="'Source Sans 3',sans-serif" font-weight="600"
+            fill="var(--eq-dot)">P₂</text>
+          <text x="425" y="456" text-anchor="middle" font-size="13"
+            font-family="'Source Sans 3',sans-serif" font-weight="600"
+            fill="var(--eq-dot)">Q₂</text>
+          <text x="425" y="273" text-anchor="middle" font-size="12"
+            font-family="'Source Sans 3',sans-serif" fill="var(--eq-dot)">E₂</text>
+        </g>
+
+        <!-- ── Arrow 1: Shortage at P1 (horizontal arrow on D curve from E1 rightward)
+          At P1 (y=237), S2 has a point: y=237 → x = 250 + (420-237)/0.7727 = 250+237 = 487
+          Actually: y = 420 - 0.7727*(x-250) → 237 = 420 - 0.7727*(x-250)
+          0.7727*(x-250) = 183 → x-250 = 236.9 → x = 486.9 ≈ 487
+          At P1 price level (y=237), S2 quantity = 487, D quantity = 357 (E1)
+          Shortage arrow goes from Q_D(357) rightward to Q_S2(487) along P1 horizontal line
+        -->
+        <g id="shortageArrow" class="animated" opacity="0" aria-hidden="true">
+          <defs>
+            <marker id="arrowOrange" markerWidth="10" markerHeight="7"
+              refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--shortage)"/>
+            </marker>
+          </defs>
+          <line x1="357" y1="237" x2="483" y2="237"
+            stroke="var(--shortage)" stroke-width="2.5"
+            stroke-dasharray="0"
+            marker-end="url(#arrowOrange)"/>
+          <text x="420" y="228" text-anchor="middle"
+            font-size="12" font-family="'Source Sans 3',sans-serif"
+            font-weight="700" fill="var(--shortage)">SHORTAGE</text>
+          <text x="420" y="250" text-anchor="middle"
+            font-size="11" font-family="'Source Sans 3',sans-serif"
+            fill="var(--shortage)">(excess supply at P₁)</text>
+        </g>
+
+        <!-- ── Arrow 2: Along S2 from (487,237) down to E2 (425,285)
+          Shows increase in quantity supplied as price adjusts down
+        -->
+        <g id="supplyAdjArrow" class="animated" opacity="0" aria-hidden="true">
+          <defs>
+            <marker id="arrowGreen2" markerWidth="10" markerHeight="7"
+              refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--supply-new)"/>
+            </marker>
+          </defs>
+          <line x1="487" y1="237" x2="430" y2="281"
+            stroke="var(--supply-new)" stroke-width="2.5"
+            marker-end="url(#arrowGreen2)"/>
+          <text x="520" y="252" text-anchor="start"
+            font-size="11" font-family="'Source Sans 3',sans-serif"
+            font-weight="600" fill="var(--supply-new)">↑ Qty Supplied</text>
+          <text x="520" y="265" text-anchor="start"
+            font-size="11" font-family="'Source Sans 3',sans-serif"
+            fill="var(--supply-new)">(along S₂)</text>
+        </g>
+
+        <!-- ── Arrow 3: Along D from E1 (357,237) to E2 (425,285)
+          Shows change in quantity demanded
+        -->
+        <g id="demandAdjArrow" class="animated" opacity="0" aria-hidden="true">
+          <defs>
+            <marker id="arrowRed" markerWidth="10" markerHeight="7"
+              refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--demand)"/>
+            </marker>
+          </defs>
+          <line x1="357" y1="237" x2="421" y2="281"
+            stroke="var(--demand)" stroke-width="2.5"
+            marker-end="url(#arrowRed)"/>
+          <text x="298" y="260" text-anchor="end"
+            font-size="11" font-family="'Source Sans 3',sans-serif"
+            font-weight="600" fill="var(--demand)">↑ Qty Demanded</text>
+          <text x="298" y="273" text-anchor="end"
+            font-size="11" font-family="'Source Sans 3',sans-serif"
+            fill="var(--demand)">(along D)</text>
+        </g>
+
+      </svg>
+    </div><!-- /.chart-wrap -->
+
+    <!-- Legend -->
+    <div class="legend" role="list" aria-label="Chart legend">
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:var(--demand)"></div>
+        <span>Demand (D)</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:var(--supply-orig)"></div>
+        <span>Original Supply (S₁)</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:var(--supply-new)"></div>
+        <span>New Supply (S₂) — Rightward Shift</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:var(--shortage)"></div>
+        <span>Shortage at P₁</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:var(--eq-dot)"></div>
+        <span>Equilibrium Points (E₁ → E₂)</span>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="description" role="region" aria-label="Explanation of the supply increase model">
+      <p>
+        <strong>What this model shows:</strong> When supply increases, the supply curve shifts
+        <em>rightward</em> from S₁ to S₂. At the original price P₁, producers now supply more
+        than consumers demand — creating a <strong style="color:var(--shortage)">temporary surplus</strong>.
+        Market pressure drives the price <em>down</em> along S₂ (more quantity supplied)
+        and consumers respond by buying <em>more</em> along D (more quantity demanded),
+        until a new equilibrium <strong>E₂</strong> is reached at a lower price P₂
+        and higher quantity Q₂.
+      </p>
+    </div>
+
+  </div><!-- /.card -->
+
+  <!-- ARIA live region -->
+  <div id="live-status" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    const btn = document.getElementById('btnAnimate');
+    const btnReset = document.getElementById('btnReset');
+    const liveStatus = document.getElementById('live-status');
+
+    // All animated element IDs in order
+    const animatedIds = [
+      'supplyNew', 'supplyNewLabel', 'shiftArrow',
+      'shortageArrow',
+      'supplyAdjArrow',
+      'demandAdjArrow',
+      'eq2Dot', 'eq2Lines'
+    ];
+
+    // Delays in ms for each element
+    const delays = [0, 0, 300, 700, 1200, 1200, 1800, 1800];
+
+    let animated = false;
+    let timers = [];
+
+    function showAll() {
+      animated = true;
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+
+      animatedIds.forEach((id, i) => {
+        const t = setTimeout(() => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.classList.add('visible');
+            el.style.opacity = '1';
+          }
+        }, delays[i]);
+        timers.push(t);
+      });
+
+      // Final live status
+      const finalTimer = setTimeout(() => {
+        liveStatus.textContent =
+          'Animation complete. New supply curve S2 shown. ' +
+          'Shortage at P1 highlighted. New equilibrium E2 reached at lower price P2 and higher quantity Q2.';
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }, 2400);
+      timers.push(finalTimer);
+    }
+
+    function resetAll() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      animated = false;
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+
+      animatedIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('visible');
+          el.style.opacity = '0';
+        }
+      });
+      liveStatus.textContent = 'Chart reset to original state.';
+    }
+
+    btn.addEventListener('click', () => {
+      if (!animated) showAll();
+    });
+
+    btnReset.addEventListener('click', resetAll);
+  </script>
+</body>
+</html>
+
+
+

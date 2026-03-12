@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supply & Demand Interactive Model — Bananas</title>
+<meta name="description" content="Interactive microeconomics supply and demand model showing market adjustments for bananas">
+<link rel="preconnect" href="https://urldefense.com/v3/__https://fonts.googleapis.com__;!!BGRtF3g!tYJ1y_ZS3ytCH2fZoLSKOYJaM9Qgy4e8ZTyrN0TfbGJJ5AeqoEhAhhYUefhyk073M_qFRjNe9TNus-TIAhncmBeO1FT4oQqe$ ">
+<link href="https://urldefense.com/v3/__https://fonts.googleapis.com/css2?family=Libre*Baskerville:ital,wght@0,400;0,700;1,400&family=Source*Code*Pro:wght@400;600&family=Playfair*Display:wght@700&display=swap__;KysrKw!!BGRtF3g!tYJ1y_ZS3ytCH2fZoLSKOYJaM9Qgy4e8ZTyrN0TfbGJJ5AeqoEhAhhYUefhyk073M_qFRjNe9TNus-TIAhncmBeO1IC0A5sR$ " rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1f2e;
+    --surface: #222840;
+    --surface2: #2a3050;
+    --chalk: #e8e4d9;
+    --chalk-dim: #a09e96;
+    --demand: #e87c5a;
+    --demand-new: #c45a3a;
+    --supply: #5ab8e8;
+    --supply-new: #3a8fc4;
+    --equilibrium: #f5d76e;
+    --shortage: #ff6b6b;
+    --surplus: #6bffb8;
+    --grid: rgba(255,255,255,0.06);
+    --accent: #f5d76e;
+    --border: rgba(232,228,217,0.12);
+  }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+color: var(–chalk);
+font-family: ‘Libre Baskerville’, Georgia, serif;
+min-height: 100vh;
+padding: 0;
+overflow-x: hidden;
+}
+
+/* Skip link for accessibility */
+.skip-link {
+position: absolute;
+top: -40px;
+left: 6px;
+background: var(–accent);
+color: var(–bg);
+padding: 8px 12px;
+border-radius: 4px;
+font-size: 0.875rem;
+font-weight: 700;
+z-index: 1000;
+text-decoration: none;
+transition: top 0.2s;
+}
+.skip-link:focus { top: 6px; }
+
+header {
+border-bottom: 1px solid var(–border);
+padding: 1.5rem 2rem;
+display: flex;
+align-items: baseline;
+gap: 1rem;
+flex-wrap: wrap;
+}
+
+.header-title {
+font-family: ‘Playfair Display’, serif;
+font-size: clamp(1.4rem, 3vw, 2rem);
+color: var(–chalk);
+letter-spacing: -0.02em;
+}
+
+.header-subtitle {
+font-size: 0.85rem;
+color: var(–chalk-dim);
+font-style: italic;
+}
+
+.badge {
+margin-left: auto;
+background: var(–surface2);
+border: 1px solid var(–border);
+color: var(–chalk-dim);
+font-family: ‘Source Code Pro’, monospace;
+font-size: 0.7rem;
+padding: 0.3rem 0.7rem;
+border-radius: 100px;
+letter-spacing: 0.05em;
+text-transform: uppercase;
+}
+
+main {
+display: grid;
+grid-template-columns: 1fr 340px;
+gap: 0;
+min-height: calc(100vh - 72px);
+}
+
+/* CHART PANEL */
+.chart-panel {
+padding: 2rem;
+border-right: 1px solid var(–border);
+display: flex;
+flex-direction: column;
+gap: 1.5rem;
+}
+
+.chart-container {
+position: relative;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+overflow: hidden;
+}
+
+/* Subtle chalkboard texture */
+.chart-container::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+background-image:
+repeating-linear-gradient(
+0deg,
+transparent,
+transparent 39px,
+rgba(255,255,255,0.025) 39px,
+rgba(255,255,255,0.025) 40px
+);
+pointer-events: none;
+z-index: 0;
+}
+
+canvas {
+display: block;
+width: 100%;
+position: relative;
+z-index: 1;
+}
+
+/* MARKET STATUS BAR */
+.market-status {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 1.25rem 1.5rem;
+display: flex;
+align-items: center;
+gap: 1.5rem;
+flex-wrap: wrap;
+min-height: 72px;
+transition: border-color 0.4s;
+}
+
+.market-status[data-state=“shortage”] { border-color: var(–shortage); }
+.market-status[data-state=“surplus”] { border-color: var(–surplus); }
+.market-status[data-state=“equilibrium”] { border-color: var(–equilibrium); }
+
+.status-indicator {
+width: 12px;
+height: 12px;
+border-radius: 50%;
+flex-shrink: 0;
+transition: background 0.4s;
+}
+[data-state=“shortage”] .status-indicator { background: var(–shortage); box-shadow: 0 0 8px var(–shortage); }
+[data-state=“surplus”] .status-indicator { background: var(–surplus); box-shadow: 0 0 8px var(–surplus); }
+[data-state=“equilibrium”] .status-indicator { background: var(–equilibrium); box-shadow: 0 0 8px var(–equilibrium); }
+
+.status-label {
+font-family: ‘Source Code Pro’, monospace;
+font-size: 0.8rem;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: var(–chalk-dim);
+}
+
+.status-message {
+font-size: 0.95rem;
+color: var(–chalk);
+flex: 1;
+line-height: 1.5;
+transition: opacity 0.3s;
+}
+
+/* ADJUSTMENT ARROWS */
+.adjustment-chain {
+display: flex;
+align-items: center;
+gap: 0.4rem;
+flex-wrap: wrap;
+font-size: 0.78rem;
+font-family: ‘Source Code Pro’, monospace;
+}
+
+.chain-step {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 0.25rem 0.5rem;
+white-space: nowrap;
+}
+
+.chain-arrow { color: var(–chalk-dim); font-size: 0.7rem; }
+
+/* SIDEBAR */
+.sidebar {
+padding: 2rem 1.5rem;
+display: flex;
+flex-direction: column;
+gap: 2rem;
+overflow-y: auto;
+}
+
+.panel {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+overflow: hidden;
+}
+
+.panel-header {
+padding: 0.9rem 1.2rem;
+border-bottom: 1px solid var(–border);
+font-family: ‘Source Code Pro’, monospace;
+font-size: 0.7rem;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+color: var(–chalk-dim);
+background: var(–surface2);
+}
+
+.panel-body { padding: 1.25rem; }
+
+/* SLIDERS */
+.control-group {
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+margin-bottom: 1.5rem;
+}
+.control-group:last-child { margin-bottom: 0; }
+
+.control-label {
+display: flex;
+justify-content: space-between;
+align-items: center;
+font-size: 0.875rem;
+}
+
+.control-name { color: var(–chalk); }
+
+.control-value {
+font-family: ‘Source Code Pro’, monospace;
+font-size: 0.875rem;
+color: var(–accent);
+font-weight: 600;
+}
+
+.control-desc {
+font-size: 0.75rem;
+color: var(–chalk-dim);
+font-style: italic;
+}
+
+input[type=“range”] {
+-webkit-appearance: none;
+appearance: none;
+width: 100%;
+height: 4px;
+border-radius: 2px;
+background: var(–surface2);
+outline: none;
+cursor: pointer;
+transition: opacity 0.2s;
+}
+
+input[type=“range”]:focus-visible {
+outline: 2px solid var(–accent);
+outline-offset: 4px;
+border-radius: 4px;
+}
+
+input[type=“range”].supply-slider { accent-color: var(–supply-new); }
+input[type=“range”].demand-slider { accent-color: var(–demand); }
+
+input[type=“range”]::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 18px;
+height: 18px;
+border-radius: 50%;
+background: var(–chalk);
+border: 2px solid var(–surface);
+box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+cursor: pointer;
+transition: transform 0.15s;
+}
+input[type=“range”]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* METRICS */
+.metrics-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 0.75rem;
+}
+
+.metric {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 0.75rem;
+display: flex;
+flex-direction: column;
+gap: 0.25rem;
+}
+
+.metric-label {
+font-family: ‘Source Code Pro’, monospace;
+font-size: 0.65rem;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: var(–chalk-dim);
+}
+
+.metric-value {
+font-family: ‘Source Code Pro’, monospace;
+font-size: 1.05rem;
+font-weight: 600;
+color: var(–chalk);
+}
+
+.metric-delta {
+font-size: 0.7rem;
+font-family: ‘Source Code Pro’, monospace;
+}
+.metric-delta.up { color: #ff6b6b; }
+.metric-delta.down { color: #6bffb8; }
+.metric-delta.neutral { color: var(–chalk-dim); }
+
+/* LEGEND */
+.legend { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.legend-item {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+font-size: 0.825rem;
+}
+
+.legend-line {
+width: 28px;
+height: 3px;
+border-radius: 2px;
+flex-shrink: 0;
+}
+
+.legend-dashed {
+width: 28px;
+height: 0;
+border-top: 2px dashed;
+flex-shrink: 0;
+}
+
+/* RESET BUTTON */
+.reset-btn {
+width: 100%;
+padding: 0.75rem;
+background: transparent;
+border: 1px solid var(–border);
+border-radius: 6px;
+color: var(–chalk-dim);
+font-family: ‘Source Code Pro’, monospace;
+font-size: 0.8rem;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+cursor: pointer;
+transition: all 0.2s;
+}
+.reset-btn:hover {
+border-color: var(–chalk);
+color: var(–chalk);
+background: var(–surface2);
+}
+.reset-btn:focus-visible {
+outline: 2px solid var(–accent);
+outline-offset: 2px;
+}
+
+/* LIVE REGION for screen readers */
+.sr-live {
+position: absolute;
+width: 1px;
+height: 1px;
+overflow: hidden;
+clip: rect(0,0,0,0);
+white-space: nowrap;
+}
+
+/* TOOLTIP */
+.tooltip {
+position: absolute;
+background: rgba(26, 31, 46, 0.95);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 0.6rem 0.8rem;
+font-family: ‘Source Code Pro’, monospace;
+font-size: 0.75rem;
+color: var(–chalk);
+pointer-events: none;
+display: none;
+z-index: 10;
+line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+main {
+grid-template-columns: 1fr;
+}
+.chart-panel { border-right: none; border-bottom: 1px solid var(–border); }
+.sidebar { padding: 1.5rem; }
+}
+</style>
+
+</head>
+<body>
+
+<a href="#controls" class="skip-link">Skip to controls</a>
+
+<div class="sr-live" aria-live="polite" aria-atomic="true" id="sr-announcement"></div>
+
+<header>
+  <h1 class="header-title">Supply &amp; Demand</h1>
+  <span class="header-subtitle">Banana Market — Microeconomics Interactive</span>
+  <span class="badge">Econ 101</span>
+</header>
+
+<main>
+  <!-- CHART -->
+  <section class="chart-panel" aria-label="Supply and demand chart">
+    <div class="chart-container" role="img" aria-label="Supply and demand graph for bananas" aria-describedby="chart-desc">
+      <p id="chart-desc" class="sr-live">
+        Interactive supply and demand graph. Use sliders in the controls panel to shift supply or demand curves and observe market adjustments.
+      </p>
+      <canvas id="sdChart" width="800" height="520" aria-hidden="true"></canvas>
+      <div class="tooltip" id="tooltip" role="tooltip" aria-hidden="true"></div>
+    </div>
+
+```
+<div class="market-status" id="marketStatus" data-state="equilibrium" role="status" aria-live="polite">
+  <div class="status-indicator" aria-hidden="true"></div>
+  <div>
+    <div class="status-label" id="statusLabel">Market State</div>
+    <div class="status-message" id="statusMessage">Market is in equilibrium. Price and quantity are balanced.</div>
+  </div>
+</div>
+
+<div id="adjustmentChain" class="adjustment-chain" aria-label="Market adjustment process" aria-live="polite"></div>
+```
+
+  </section>
+
+  <!-- SIDEBAR -->
+
+  <aside class="sidebar" aria-label="Market controls and metrics">
+
+```
+<!-- CONTROLS -->
+<div class="panel" id="controls">
+  <div class="panel-header">Market Controls</div>
+  <div class="panel-body">
+
+    <div class="control-group">
+      <label class="control-label" for="supplyShift">
+        <span class="control-name">Supply Shift</span>
+        <span class="control-value" id="supplyShiftVal" aria-live="polite">0%</span>
+      </label>
+      <div class="control-desc">Negative = decrease supply (S shifts left)</div>
+      <input
+        type="range"
+        id="supplyShift"
+        class="supply-slider"
+        min="-60"
+        max="60"
+        value="0"
+        step="5"
+        aria-valuemin="-60"
+        aria-valuemax="60"
+        aria-valuenow="0"
+        aria-label="Supply shift: negative values decrease supply, positive values increase supply"
+      >
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="demandShift">
+        <span class="control-name">Demand Shift</span>
+        <span class="control-value" id="demandShiftVal" aria-live="polite">0%</span>
+      </label>
+      <div class="control-desc">Positive = increase demand (D shifts right)</div>
+      <input
+        type="range"
+        id="demandShift"
+        class="demand-slider"
+        min="-60"
+        max="60"
+        value="0"
+        step="5"
+        aria-valuemin="-60"
+        aria-valuemax="60"
+        aria-valuenow="0"
+        aria-label="Demand shift: negative values decrease demand, positive values increase demand"
+      >
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="showAdjustment">
+        <span class="control-name">Show Price Ceiling</span>
+        <span class="control-value" id="ceilingVal" aria-live="polite">Off</span>
+      </label>
+      <div class="control-desc">Set below equilibrium to reveal shortage</div>
+      <input
+        type="range"
+        id="priceCeiling"
+        class="supply-slider"
+        min="0"
+        max="1"
+        value="0"
+        step="1"
+        aria-valuemin="0"
+        aria-valuemax="1"
+        aria-valuenow="0"
+        aria-label="Toggle price ceiling on or off"
+      >
+    </div>
+
+    <button class="reset-btn" id="resetBtn" aria-label="Reset all controls to default values">
+      ↺ Reset to Equilibrium
+    </button>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="panel" aria-label="Market metrics">
+  <div class="panel-header">Market Metrics</div>
+  <div class="panel-body">
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric">
+        <div class="metric-label">Eq. Price</div>
+        <div class="metric-value" id="mPrice">$2.99</div>
+        <div class="metric-delta neutral" id="mPriceDelta">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Eq. Quantity</div>
+        <div class="metric-value" id="mQty">5 units</div>
+        <div class="metric-delta neutral" id="mQtyDelta">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">QD at Eq.</div>
+        <div class="metric-value" id="mQD">5 units</div>
+        <div class="metric-delta neutral" id="mQDDelta">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">QS at Eq.</div>
+        <div class="metric-value" id="mQS">5 units</div>
+        <div class="metric-delta neutral" id="mQSDelta">—</div>
+      </div>
+      <div class="metric" style="grid-column:1/-1">
+        <div class="metric-label">Market Gap (QD − QS)</div>
+        <div class="metric-value" id="mGap">0 units</div>
+        <div class="metric-delta neutral" id="mGapLabel">Balanced</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="panel" aria-label="Chart legend">
+  <div class="panel-header">Legend</div>
+  <div class="panel-body">
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-line" style="background:#5ab8e8"></div>
+        <span>Original Supply (S)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#3a8fc4; border-top: 2px dashed #3a8fc4; background: none; width:28px; height:0;"></div>
+        <span>New Supply (S₁)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#e87c5a"></div>
+        <span>Demand (D)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#f5d76e"></div>
+        <span>Equilibrium Point</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#ff6b6b"></div>
+        <span>Shortage Gap</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#6bffb8"></div>
+        <span>Surplus Gap</span>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+  </aside>
+</main>
+
+<script>
+// ─── MODEL PARAMETERS ───────────────────────────────────────────────────────
+const BASE = {
+  // Demand: P = demandIntercept - demandSlope * Q
+  demandIntercept: 5.99,  // max willingness to pay
+  demandSlope: 0.6,       // $/unit slope
+
+  // Supply: P = supplyIntercept + supplySlope * Q
+  supplyIntercept: 0.99,  // min price to produce
+  supplySlope: 0.4,       // $/unit slope
+
+  // Display
+  maxQ: 10,
+  maxP: 7,
+  good: 'Bananas',
+  unit: 'lbs',
+};
+
+// Equilibrium: demandIntercept - dSlope*Q = supplyIntercept + sSlope*Q
+// => Q* = (dI - sI) / (dS + sS)
+function calcEquilibrium(dI, dS, sI, sS) {
+  const q = (dI - sI) / (dS + sS);
+  const p = dI - dS * q;
+  return { q: Math.max(0, q), p: Math.max(0, p) };
+}
+
+// At a given price P, QD and QS
+function calcQD(P, dI, dS) { return Math.max(0, (dI - P) / dS); }
+function calcQS(P, sI, sS) { return Math.max(0, (P - sI) / sS); }
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const state = {
+  supplyShift: 0,   // % shift
+  demandShift: 0,
+  priceCeiling: false,
+  animFrame: null,
+  animT: 1,         // 0..1 animation progress
+  prevEq: null,
+  targetEq: null,
+};
+
+const canvas = document.getElementById('sdChart');
+const ctx = canvas.getContext('2d');
+
+function getShiftedParams() {
+  const sShiftAmt = state.supplyShift / 100;
+  const dShiftAmt = state.demandShift / 100;
+
+  // Supply shift: intercept changes (cost shock)
+  const newSI = BASE.supplyIntercept - sShiftAmt * 2.0;
+  const newDI = BASE.demandIntercept + dShiftAmt * 2.0;
+
+  return {
+    dI: newDI,
+    dS: BASE.demandSlope,
+    sI: BASE.supplyIntercept,  // original
+    sS: BASE.supplySlope,
+    newSI: newSI,              // shifted
+    newSS: BASE.supplySlope,
+  };
+}
+
+// ─── DRAWING ─────────────────────────────────────────────────────────────────
+function toCanvas(q, p, pad, cw, ch) {
+  const x = pad.l + (q / BASE.maxQ) * (cw - pad.l - pad.r);
+  const y = pad.t + (1 - p / BASE.maxP) * (ch - pad.t - pad.b);
+  return { x, y };
+}
+
+function drawModel(animT = 1) {
+  const dpr = window.devicePixelRatio || 1;
+  const displayW = canvas.clientWidth;
+  const displayH = Math.round(displayW * 0.65);
+  canvas.width = displayW * dpr;
+  canvas.height = displayH * dpr;
+  canvas.style.height = displayH + 'px';
+  ctx.scale(dpr, dpr);
+  const cw = displayW, ch = displayH;
+
+  const pad = { l: 64, r: 40, t: 30, b: 56 };
+
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Background
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#222840';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let q = 0; q <= BASE.maxQ; q += 2) {
+    const { x } = toCanvas(q, 0, pad, cw, ch);
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, ch - pad.b); ctx.stroke();
+  }
+  for (let p = 0; p <= BASE.maxP; p += 1) {
+    const { y } = toCanvas(0, p, pad, cw, ch);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(cw - pad.r, y); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = 'rgba(232,228,217,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, ch - pad.b); ctx.lineTo(cw - pad.r, ch - pad.b);
+  ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = 'rgba(232,228,217,0.6)';
+  ctx.font = `600 11px 'Source Code Pro', monospace`;
+  ctx.textAlign = 'center';
+
+  for (let q = 0; q <= BASE.maxQ; q += 2) {
+    const { x, y } = toCanvas(q, 0, pad, cw, ch);
+    ctx.fillText(q, x, y + 18);
+  }
+  for (let p = 1; p <= BASE.maxP; p += 1) {
+    const { x, y } = toCanvas(0, p, pad, cw, ch);
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + p.toFixed(0), x - 8, y + 4);
+  }
+  ctx.textAlign = 'center';
+
+  // Axis titles
+  ctx.fillStyle = 'rgba(232,228,217,0.8)';
+  ctx.font = `italic 13px 'Libre Baskerville', serif`;
+  ctx.fillText('Quantity (' + BASE.unit + ')', pad.l + (cw - pad.l - pad.r) / 2, ch - 6);
+
+  ctx.save();
+  ctx.translate(16, pad.t + (ch - pad.t - pad.b) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Price ($)', 0, 0);
+  ctx.restore();
+
+  const params = getShiftedParams();
+  const { dI, dS, sI, sS, newSI, newSS } = params;
+
+  const origEq = calcEquilibrium(dI, dS, sI, sS);
+  const newEq = calcEquilibrium(dI, dS, newSI, newSS);
+
+  // Interpolate for animation
+  const eq = {
+    q: origEq.q + (newEq.q - origEq.q) * animT,
+    p: origEq.p + (newEq.p - origEq.p) * animT,
+  };
+  const animSI = sI + (newSI - sI) * animT;
+
+  // ── ORIGINAL SUPPLY (S) ──
+  ctx.strokeStyle = '#5ab8e8';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
+  ctx.globalAlpha = animT < 0.99 ? 0.9 : 0.45;
+  drawLine(ctx, (p) => calcQS(p, sI, sS), pad, cw, ch, 0, BASE.maxP);
+  ctx.globalAlpha = 1;
+
+  // ── ORIGINAL SUPPLY LABEL ──
+  if (animT < 0.99) {
+    labelCurve(ctx, (p) => calcQS(p, sI, sS), sI + (BASE.maxP - sI) * 0.85, 'S', '#5ab8e8', pad, cw, ch, true);
+  } else {
+    labelCurve(ctx, (p) => calcQS(p, sI, sS), sI + (BASE.maxP - sI) * 0.85, 'S', '#5ab8e8', pad, cw, ch, true);
+  }
+
+  // ── SHIFTED SUPPLY (S₁) ──
+  if (animT > 0.01) {
+    ctx.strokeStyle = '#3a8fc4';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([6, 4]);
+    ctx.globalAlpha = 0.4 + 0.6 * animT;
+    drawLine(ctx, (p) => calcQS(p, animSI, newSS), pad, cw, ch, 0, BASE.maxP);
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    if (animT > 0.3) {
+      labelCurve(ctx, (p) => calcQS(p, animSI, newSS), animSI + (BASE.maxP - animSI) * 0.85, 'S₁', '#3a8fc4', pad, cw, ch, true);
+    }
+  }
+
+  // ── DEMAND (D) ──
+  ctx.strokeStyle = '#e87c5a';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
+  drawLine(ctx, (p) => calcQD(p, dI, dS), pad, cw, ch, 0, dI);
+  labelCurve(ctx, (p) => calcQD(p, dI, dS), dI * 0.15, 'D', '#e87c5a', pad, cw, ch, false);
+
+  // ── SHORTAGE / SURPLUS VISUALIZATION ──
+  const origP = origEq.p;
+  if (Math.abs(animT) > 0.05 && Math.abs(newEq.p - origEq.p) > 0.05) {
+    // At original equilibrium price, show QD vs QS mismatch
+    const pAtOrig = origEq.p;
+    const qd_orig = calcQD(pAtOrig, dI, dS);
+    const qs_new = calcQS(pAtOrig, animSI, newSS);
+    const isShortage = qd_orig > qs_new;
+    const gapColor = isShortage ? 'rgba(255,107,107,0.25)' : 'rgba(107,255,184,0.25)';
+    const gapStroke = isShortage ? '#ff6b6b' : '#6bffb8';
+
+    const ptQD = toCanvas(qd_orig, pAtOrig, pad, cw, ch);
+    const ptQS = toCanvas(qs_new, pAtOrig, pad, cw, ch);
+    const ptBase = toCanvas(qs_new, 0, pad, cw, ch);
+    const ptBase2 = toCanvas(qd_orig, 0, pad, cw, ch);
+    const ptYAxis = toCanvas(0, pAtOrig, pad, cw, ch);
+
+    // Horizontal dashed line at old eq price
+    ctx.strokeStyle = 'rgba(245,215,110,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, ptQD.y);
+    ctx.lineTo(Math.max(ptQD.x, ptQS.x) + 8, ptQD.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Gap fill
+    ctx.fillStyle = gapColor;
+    ctx.beginPath();
+    ctx.rect(ptQS.x, ptQS.y - 1, ptQD.x - ptQS.x, ch - pad.b - ptQS.y + 1);
+    ctx.fill();
+
+    // Gap bracket
+    ctx.strokeStyle = gapStroke;
+    ctx.lineWidth = 2;
+    const midY = ch - pad.b + 12;
+    ctx.beginPath();
+    ctx.moveTo(ptQS.x, midY);
+    ctx.lineTo(ptQD.x, midY);
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ptQS.x, midY - 5); ctx.lineTo(ptQS.x, midY + 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ptQD.x, midY - 5); ctx.lineTo(ptQD.x, midY + 5); ctx.stroke();
+
+    const midX = (ptQS.x + ptQD.x) / 2;
+    ctx.fillStyle = gapStroke;
+    ctx.font = `bold 11px 'Source Code Pro', monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(isShortage ? 'Shortage' : 'Surplus', midX, midY + 18);
+    ctx.fillText(`${Math.abs(qd_orig - qs_new).toFixed(1)} ${BASE.unit}`, midX, midY + 30);
+  }
+
+  // ── NEW EQUILIBRIUM POINT ──
+  if (animT > 0.01) {
+    const ptNew = toCanvas(eq.q, eq.p, pad, cw, ch);
+    // Drop lines
+    ctx.strokeStyle = 'rgba(245,215,110,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(pad.l, ptNew.y); ctx.lineTo(ptNew.x, ptNew.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ptNew.x, ptNew.y); ctx.lineTo(ptNew.x, ch - pad.b); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dot
+    ctx.beginPath();
+    ctx.arc(ptNew.x, ptNew.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#f5d76e';
+    ctx.fill();
+    ctx.strokeStyle = '#1a1f2e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Labels on axes
+    ctx.fillStyle = '#f5d76e';
+    ctx.font = `600 11px 'Source Code Pro', monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText('P*=$' + eq.p.toFixed(2), pad.l - 6, ptNew.y + 4);
+    ctx.textAlign = 'center';
+    ctx.fillText('Q*=' + eq.q.toFixed(1), ptNew.x, ch - pad.b + 30);
+  }
+
+  // ── ORIGINAL EQUILIBRIUM ──
+  if (animT > 0.01) {
+    const ptOrig = toCanvas(origEq.q, origEq.p, pad, cw, ch);
+    ctx.beginPath();
+    ctx.arc(ptOrig.x, ptOrig.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(245,215,110,0.35)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(245,215,110,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // ── TITLE ──
+  ctx.fillStyle = 'rgba(232,228,217,0.85)';
+  ctx.font = `italic bold 15px 'Playfair Display', serif`;
+  ctx.textAlign = 'left';
+  ctx.fillText(`${BASE.good} Market`, pad.l + 8, pad.t + 16);
+}
+
+function drawLine(ctx, qFromP, pad, cw, ch, pMin, pMax) {
+  const steps = 200;
+  ctx.beginPath();
+  let started = false;
+  for (let i = 0; i <= steps; i++) {
+    const p = pMin + (pMax - pMin) * (i / steps);
+    const q = qFromP(p);
+    if (q < 0 || q > BASE.maxQ) continue;
+    const { x, y } = toCanvas(q, p, pad, cw, ch);
+    if (!started) { ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+function labelCurve(ctx, qFromP, pLabel, text, color, pad, cw, ch, isSupply) {
+  const q = qFromP(pLabel);
+  if (q < 0 || q > BASE.maxQ) return;
+  const { x, y } = toCanvas(q, pLabel, pad, cw, ch);
+  ctx.fillStyle = color;
+  ctx.font = `bold 14px 'Libre Baskerville', serif`;
+  ctx.textAlign = 'left';
+  ctx.fillText(text, x + 6, y - 4);
+}
+
+// ─── ANIMATION ───────────────────────────────────────────────────────────────
+let animTarget = 0;
+let animCurrent = 0;
+
+function animate() {
+  const diff = animTarget - animCurrent;
+  if (Math.abs(diff) < 0.002) {
+    animCurrent = animTarget;
+    drawModel(animCurrent);
+    return;
+  }
+  animCurrent += diff * 0.12;
+  drawModel(animCurrent);
+  requestAnimationFrame(animate);
+}
+
+function triggerUpdate() {
+  const params = getShiftedParams();
+  const hasShift = Math.abs(params.newSI - params.sI) > 0.01 || Math.abs(params.dI - BASE.demandIntercept) > 0.01;
+  animTarget = hasShift ? 1 : 0;
+  requestAnimationFrame(animate);
+  updateMetrics();
+  updateStatus();
+}
+
+// ─── METRICS ─────────────────────────────────────────────────────────────────
+const baseEq = calcEquilibrium(BASE.demandIntercept, BASE.demandSlope, BASE.supplyIntercept, BASE.supplySlope);
+
+function updateMetrics() {
+  const params = getShiftedParams();
+  const { dI, dS, newSI, newSS } = params;
+  const newEq = calcEquilibrium(dI, dS, newSI, newSS);
+
+  const priceDelta = newEq.p - baseEq.p;
+  const qtyDelta = newEq.q - baseEq.q;
+
+  document.getElementById('mPrice').textContent = '$' + newEq.p.toFixed(2);
+  document.getElementById('mQty').textContent = newEq.q.toFixed(1) + ' ' + BASE.unit;
+
+  const qd = calcQD(newEq.p, dI, dS);
+  const qs = calcQS(newEq.p, newSI, newSS);
+  document.getElementById('mQD').textContent = qd.toFixed(1) + ' ' + BASE.unit;
+  document.getElementById('mQS').textContent = qs.toFixed(1) + ' ' + BASE.unit;
+
+  const gap = qd - qs;
+  document.getElementById('mGap').textContent = Math.abs(gap).toFixed(1) + ' ' + BASE.unit;
+
+  setDelta('mPriceDelta', priceDelta, '$', 2);
+  setDelta('mQtyDelta', qtyDelta, '', 1);
+  setDelta('mQDDelta', qd - baseEq.q, '', 1);
+  setDelta('mQSDDelta', qs - baseEq.q, '', 1);
+
+  const gapLabel = document.getElementById('mGapLabel');
+  if (Math.abs(gap) < 0.15) {
+    gapLabel.textContent = 'Balanced'; gapLabel.className = 'metric-delta neutral';
+  } else if (gap > 0) {
+    gapLabel.textContent = '↑ Shortage'; gapLabel.className = 'metric-delta up';
+  } else {
+    gapLabel.textContent = '↓ Surplus'; gapLabel.className = 'metric-delta down';
+  }
+}
+
+function setDelta(id, delta, prefix, dec) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (Math.abs(delta) < 0.005) {
+    el.textContent = '— base'; el.className = 'metric-delta neutral'; return;
+  }
+  const sign = delta > 0 ? '▲ +' : '▼ ';
+  el.textContent = sign + prefix + Math.abs(delta).toFixed(dec);
+  el.className = delta > 0 ? 'metric-delta up' : 'metric-delta down';
+}
+
+// ─── STATUS & CHAIN ──────────────────────────────────────────────────────────
+function updateStatus() {
+  const params = getShiftedParams();
+  const { dI, dS, newSI, newSS, sI, sS } = params;
+  const origEq = calcEquilibrium(dI, dS, sI, sS);
+  const newEq = calcEquilibrium(dI, dS, newSI, newSS);
+  const pDiff = newEq.p - origEq.p;
+  const qDiff = newEq.q - origEq.q;
+
+  const statusEl = document.getElementById('marketStatus');
+  const msgEl = document.getElementById('statusMessage');
+  const chainEl = document.getElementById('adjustmentChain');
+  const srEl = document.getElementById('sr-announcement');
+
+  if (Math.abs(pDiff) < 0.05) {
+    statusEl.dataset.state = 'equilibrium';
+    msgEl.textContent = 'Market is in equilibrium. Quantity demanded equals quantity supplied at P* = $' + origEq.p.toFixed(2) + '.';
+    chainEl.innerHTML = '';
+    srEl.textContent = 'Market in equilibrium at price $' + origEq.p.toFixed(2);
+    return;
+  }
+
+  if (pDiff > 0) {
+    // Supply decreased → shortage → price rises
+    statusEl.dataset.state = 'shortage';
+    msgEl.textContent = `Supply decreased → Shortage at old price → Price rises to $${newEq.p.toFixed(2)} → QD falls, QS rises until new equilibrium.`;
+    chainEl.innerHTML = makeChain([
+      { label: 'Supply ↓', color: '#5ab8e8' },
+      '→',
+      { label: 'Shortage', color: '#ff6b6b' },
+      '→',
+      { label: 'Price ↑', color: '#f5d76e' },
+      '→',
+      { label: 'QD ↓', color: '#e87c5a' },
+      '+',
+      { label: 'QS ↑', color: '#5ab8e8' },
+      '→',
+      { label: 'New Eq.', color: '#f5d76e' },
+    ]);
+    srEl.textContent = `Shortage detected. Price rises to $${newEq.p.toFixed(2)}. Quantity demanded falls, quantity supplied rises.`;
+  } else {
+    // Supply increased or demand fell → surplus → price falls
+    statusEl.dataset.state = 'surplus';
+    msgEl.textContent = `Supply increased → Surplus at old price → Price falls to $${newEq.p.toFixed(2)} → QD rises, QS falls until new equilibrium.`;
+    chainEl.innerHTML = makeChain([
+      { label: 'Supply ↑', color: '#5ab8e8' },
+      '→',
+      { label: 'Surplus', color: '#6bffb8' },
+      '→',
+      { label: 'Price ↓', color: '#f5d76e' },
+      '→',
+      { label: 'QD ↑', color: '#e87c5a' },
+      '+',
+      { label: 'QS ↓', color: '#5ab8e8' },
+      '→',
+      { label: 'New Eq.', color: '#f5d76e' },
+    ]);
+    srEl.textContent = `Surplus detected. Price falls to $${newEq.p.toFixed(2)}. Quantity demanded rises, quantity supplied falls.`;
+  }
+}
+
+function makeChain(items) {
+  return items.map(item => {
+    if (typeof item === 'string') {
+      return `<span class="chain-arrow">${item}</span>`;
+    }
+    return `<span class="chain-step" style="border-color:${item.color}30;color:${item.color}">${item.label}</span>`;
+  }).join('');
+}
+
+// ─── EVENT LISTENERS ─────────────────────────────────────────────────────────
+const supplySlider = document.getElementById('supplyShift');
+const demandSlider = document.getElementById('demandShift');
+const ceilingSlider = document.getElementById('priceCeiling');
+
+supplySlider.addEventListener('input', (e) => {
+  state.supplyShift = +e.target.value;
+  e.target.setAttribute('aria-valuenow', e.target.value);
+  document.getElementById('supplyShiftVal').textContent = (state.supplyShift >= 0 ? '+' : '') + state.supplyShift + '%';
+  triggerUpdate();
+});
+
+demandSlider.addEventListener('input', (e) => {
+  state.demandShift = +e.target.value;
+  e.target.setAttribute('aria-valuenow', e.target.value);
+  document.getElementById('demandShiftVal').textContent = (state.demandShift >= 0 ? '+' : '') + state.demandShift + '%';
+  triggerUpdate();
+});
+
+ceilingSlider.addEventListener('input', (e) => {
+  state.priceCeiling = +e.target.value === 1;
+  document.getElementById('ceilingVal').textContent = state.priceCeiling ? 'On' : 'Off';
+  triggerUpdate();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  supplySlider.value = 0;
+  demandSlider.value = 0;
+  ceilingSlider.value = 0;
+  state.supplyShift = 0;
+  state.demandShift = 0;
+  state.priceCeiling = false;
+  document.getElementById('supplyShiftVal').textContent = '0%';
+  document.getElementById('demandShiftVal').textContent = '0%';
+  document.getElementById('ceilingVal').textContent = 'Off';
+  triggerUpdate();
+});
+
+// Canvas mouse hover tooltip
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  const pad = { l: 64, r: 40, t: 30, b: 56 };
+
+  const q = ((mouseX - pad.l) / (cw - pad.l - pad.r)) * BASE.maxQ;
+  const p = BASE.maxP * (1 - (mouseY - pad.t) / (ch - pad.t - pad.b));
+
+  if (q >= 0 && q <= BASE.maxQ && p >= 0 && p <= BASE.maxP) {
+    const params = getShiftedParams();
+    const qd = calcQD(p, params.dI, params.dS).toFixed(1);
+    const qs = calcQS(p, params.newSI, params.newSS).toFixed(1);
+    const tooltip = document.getElementById('tooltip');
+    tooltip.style.display = 'block';
+    tooltip.style.left = (mouseX + 12) + 'px';
+    tooltip.style.top = (mouseY - 10) + 'px';
+    tooltip.innerHTML = `P: $${p.toFixed(2)}<br>QD: ${qd} ${BASE.unit}<br>QS: ${qs} ${BASE.unit}`;
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  document.getElementById('tooltip').style.display = 'none';
+});
+
+// Resize
+window.addEventListener('resize', () => { drawModel(animCurrent); });
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+drawModel(0);
+updateMetrics();
+updateStatus();
+</script>
+
+</body>
+</html>
