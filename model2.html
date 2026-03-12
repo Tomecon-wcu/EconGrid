@@ -1,0 +1,1093 @@
+<!DOCTYPE html> 
+
+<html lang="en"> 
+
+<head> 
+
+  <meta charset="UTF-8" /> 
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+
+  <title>U.S. Beef Market — Increase in Demand</title> 
+
+  <meta name="description" content="Interactive supply and demand diagram illustrating an increase in demand in the U.S. beef market, showing equilibrium shift, shortage, and price/quantity adjustments." /> 
+
+  <style> 
+
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap'); 
+
+ 
+
+    :root { 
+
+      --bg: #faf7f2; 
+
+      --panel: #ffffff; 
+
+      --ink: #1a1208; 
+
+      --muted: #6b5e4a; 
+
+      --accent-red: #c0392b; 
+
+      --accent-blue: #1a5276; 
+
+      --accent-green: #1e8449; 
+
+      --accent-orange: #d35400; 
+
+      --supply: #1a5276; 
+
+      --demand1: #7d3c98; 
+
+      --demand2: #c0392b; 
+
+      --eq-old: #888; 
+
+      --eq-new: #1e8449; 
+
+      --shortage: #d35400; 
+
+      --border: #e0d6c8; 
+
+      --shadow: 0 4px 32px rgba(26,18,8,0.10); 
+
+    } 
+
+ 
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; } 
+
+ 
+
+    body { 
+
+      font-family: 'Source Serif 4', Georgia, serif; 
+
+      background: var(--bg); 
+
+      color: var(--ink); 
+
+      min-height: 100vh; 
+
+      display: flex; 
+
+      flex-direction: column; 
+
+      align-items: center; 
+
+      padding: 2rem 1rem 3rem; 
+
+    } 
+
+ 
+
+    header { 
+
+      text-align: center; 
+
+      max-width: 700px; 
+
+      margin-bottom: 1.8rem; 
+
+    } 
+
+    header h1 { 
+
+      font-family: 'Playfair Display', Georgia, serif; 
+
+      font-size: clamp(1.6rem, 4vw, 2.4rem); 
+
+      font-weight: 900; 
+
+      line-height: 1.15; 
+
+      letter-spacing: -0.5px; 
+
+      color: var(--ink); 
+
+    } 
+
+    header p { 
+
+      margin-top: 0.55rem; 
+
+      font-size: 1rem; 
+
+      color: var(--muted); 
+
+      font-style: italic; 
+
+      font-weight: 300; 
+
+    } 
+
+ 
+
+    .card { 
+
+      background: var(--panel); 
+
+      border: 1px solid var(--border); 
+
+      border-radius: 16px; 
+
+      box-shadow: var(--shadow); 
+
+      padding: 1.6rem 1.8rem 1.4rem; 
+
+      max-width: 860px; 
+
+      width: 100%; 
+
+    } 
+
+ 
+
+    /* ─── Controls ─── */ 
+
+    .controls { 
+
+      display: flex; 
+
+      flex-wrap: wrap; 
+
+      gap: 0.75rem; 
+
+      justify-content: center; 
+
+      margin-bottom: 1.4rem; 
+
+    } 
+
+    .controls button { 
+
+      font-family: 'Source Serif 4', serif; 
+
+      font-size: 0.92rem; 
+
+      font-weight: 600; 
+
+      border: 2px solid currentColor; 
+
+      border-radius: 8px; 
+
+      padding: 0.5rem 1.1rem; 
+
+      cursor: pointer; 
+
+      background: transparent; 
+
+      transition: background 0.18s, color 0.18s; 
+
+    } 
+
+    #btn-play  { color: var(--accent-green); } 
+
+    #btn-play:hover, #btn-play:focus  { background: var(--accent-green); color: #fff; } 
+
+    #btn-reset { color: var(--accent-red); } 
+
+    #btn-reset:hover, #btn-reset:focus { background: var(--accent-red); color: #fff; } 
+
+    .controls button:focus-visible { outline: 3px solid #f0a500; outline-offset: 3px; } 
+
+ 
+
+    /* ─── SVG wrapper ─── */ 
+
+    .chart-wrap { 
+
+      position: relative; 
+
+      width: 100%; 
+
+    } 
+
+    svg#chart { 
+
+      display: block; 
+
+      width: 100%; 
+
+      height: auto; 
+
+      overflow: visible; 
+
+    } 
+
+ 
+
+    /* ─── Legend ─── */ 
+
+    .legend { 
+
+      display: flex; 
+
+      flex-wrap: wrap; 
+
+      gap: 0.6rem 1.4rem; 
+
+      margin-top: 1.2rem; 
+
+      justify-content: center; 
+
+      font-size: 0.88rem; 
+
+    } 
+
+    .legend-item { 
+
+      display: flex; 
+
+      align-items: center; 
+
+      gap: 0.45rem; 
+
+    } 
+
+    .legend-swatch { 
+
+      width: 28px; 
+
+      height: 4px; 
+
+      border-radius: 2px; 
+
+      flex-shrink: 0; 
+
+    } 
+
+    .legend-swatch.dashed { 
+
+      background: repeating-linear-gradient(90deg,var(--swatch-color) 0,var(--swatch-color) 6px,transparent 6px,transparent 10px); 
+
+    } 
+
+ 
+
+    /* ─── Data table ─── */ 
+
+    .data-table-wrap { 
+
+      margin-top: 1.5rem; 
+
+      overflow-x: auto; 
+
+    } 
+
+    table { 
+
+      width: 100%; 
+
+      border-collapse: collapse; 
+
+      font-size: 0.9rem; 
+
+    } 
+
+    caption { 
+
+      font-family: 'Playfair Display', serif; 
+
+      font-size: 1.05rem; 
+
+      font-weight: 700; 
+
+      text-align: left; 
+
+      padding-bottom: 0.5rem; 
+
+      color: var(--ink); 
+
+    } 
+
+    th, td { 
+
+      padding: 0.55rem 0.9rem; 
+
+      text-align: left; 
+
+      border-bottom: 1px solid var(--border); 
+
+    } 
+
+    th { 
+
+      font-weight: 600; 
+
+      background: #f4efe8; 
+
+      color: var(--ink); 
+
+    } 
+
+    td:first-child { font-weight: 600; } 
+
+    tr:last-child td { border-bottom: none; } 
+
+ 
+
+    /* ─── Step description ─── */ 
+
+    #step-desc { 
+
+      margin-top: 1.4rem; 
+
+      background: #f4efe8; 
+
+      border-left: 4px solid var(--accent-orange); 
+
+      border-radius: 0 8px 8px 0; 
+
+      padding: 0.8rem 1rem; 
+
+      font-size: 0.95rem; 
+
+      min-height: 3.4rem; 
+
+      line-height: 1.5; 
+
+      color: var(--ink); 
+
+    } 
+
+    #step-desc strong { color: var(--accent-orange); } 
+
+ 
+
+    /* ─── Sources ─── */ 
+
+    .sources { 
+
+      margin-top: 1rem; 
+
+      font-size: 0.78rem; 
+
+      color: var(--muted); 
+
+      font-style: italic; 
+
+    } 
+
+ 
+
+    @media (max-width: 500px) { 
+
+      .card { padding: 1rem; } 
+
+      th, td { padding: 0.45rem 0.6rem; font-size: 0.82rem; } 
+
+    } 
+
+  </style> 
+
+</head> 
+
+<body> 
+
+ 
+
+<header> 
+
+  <h1>U.S. Beef Market<br>An Increase in Demand</h1> 
+
+  <p>Interactive supply &amp; demand diagram — retail beef, 2024–2025 data</p> 
+
+</header> 
+
+ 
+
+<main class="card" role="main"> 
+
+ 
+
+  <div class="controls" role="group" aria-label="Animation controls"> 
+
+    <button id="btn-play" aria-label="Play animation showing demand increase">▶ Animate Demand Shift</button> 
+
+    <button id="btn-reset" aria-label="Reset diagram to original equilibrium">↺ Reset</button> 
+
+  </div> 
+
+ 
+
+  <!-- Live region for screen readers --> 
+
+  <div id="sr-live" aria-live="polite" aria-atomic="true" class="visually-hidden" 
+
+       style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;"></div> 
+
+ 
+
+  <div class="chart-wrap" role="img" aria-label="Supply and demand diagram for U.S. beef market showing demand curve shifting right, resulting shortage, new equilibrium price and quantity"> 
+
+    <svg id="chart" viewBox="0 0 620 440" aria-hidden="true" focusable="false"> 
+
+      <defs> 
+
+        <!-- Arrow markers --> 
+
+        <marker id="arr-orange" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"> 
+
+          <path d="M0,0 L9,4.5 L0,9 Z" fill="#d35400"/> 
+
+        </marker> 
+
+        <marker id="arr-green" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"> 
+
+          <path d="M0,0 L9,4.5 L0,9 Z" fill="#1e8449"/> 
+
+        </marker> 
+
+        <marker id="arr-red" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"> 
+
+          <path d="M0,0 L9,4.5 L0,9 Z" fill="#c0392b"/> 
+
+        </marker> 
+
+        <marker id="arr-purple" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"> 
+
+          <path d="M0,0 L9,4.5 L0,9 Z" fill="#7d3c98"/> 
+
+        </marker> 
+
+      </defs> 
+
+ 
+
+      <!-- ── Axes ── --> 
+
+      <!-- Y axis --> 
+
+      <line x1="80" y1="30" x2="80" y2="390" stroke="#1a1208" stroke-width="2.5"/> 
+
+      <!-- X axis --> 
+
+      <line x1="80" y1="390" x2="590" y2="390" stroke="#1a1208" stroke-width="2.5"/> 
+
+      <!-- Axis arrows --> 
+
+      <polygon points="80,26 76,38 84,38" fill="#1a1208"/> 
+
+      <polygon points="594,390 582,386 582,394" fill="#1a1208"/> 
+
+ 
+
+      <!-- Axis labels --> 
+
+      <text x="28" y="215" font-family="Playfair Display,Georgia,serif" font-size="15" font-weight="700" fill="#1a1208" text-anchor="middle" transform="rotate(-90,28,215)">Price ($/lb)</text> 
+
+      <text x="590" y="415" font-family="Playfair Display,Georgia,serif" font-size="15" font-weight="700" fill="#1a1208" text-anchor="end">Pounds of Beef (billions/year)</text> 
+
+ 
+
+      <!-- Y-axis tick marks & labels --> 
+
+      <!-- $5.00 --> 
+
+      <line x1="75" y1="370" x2="85" y2="370" stroke="#1a1208" stroke-width="1.5"/> 
+
+      <text x="72" y="374" font-size="12" fill="#6b5e4a" text-anchor="end">$5</text> 
+
+      <!-- $6.00 --> 
+
+      <line x1="75" y1="320" x2="85" y2="320" stroke="#1a1208" stroke-width="1.5"/> 
+
+      <text x="72" y="324" font-size="12" fill="#6b5e4a" text-anchor="end">$6</text> 
+
+      <!-- $7.00 old eq --> 
+
+      <line x1="75" y1="270" x2="85" y2="270" stroke="#888" stroke-width="1.5" stroke-dasharray="3,3"/> 
+
+      <text x="72" y="274" font-size="12" fill="#888" text-anchor="end">$7</text> 
+
+      <!-- $8.00 new eq --> 
+
+      <line x1="75" y1="220" x2="85" y2="220" stroke="#1e8449" stroke-width="1.5" stroke-dasharray="3,3"/> 
+
+      <text x="72" y="224" font-size="12" fill="#1e8449" text-anchor="end">$8</text> 
+
+      <!-- $9.00 --> 
+
+      <line x1="75" y1="170" x2="85" y2="170" stroke="#1a1208" stroke-width="1.5"/> 
+
+      <text x="72" y="174" font-size="12" fill="#6b5e4a" text-anchor="end">$9</text> 
+
+      <!-- $10.00 --> 
+
+      <line x1="75" y1="120" x2="85" y2="120" stroke="#1a1208" stroke-width="1.5"/> 
+
+      <text x="72" y="124" font-size="12" fill="#6b5e4a" text-anchor="end">$10</text> 
+
+ 
+
+      <!-- X-axis tick marks & labels --> 
+
+      <!-- 24 --> 
+
+      <line x1="180" y1="385" x2="180" y2="395" stroke="#1a1208" stroke-width="1.5"/> 
+
+      <text x="180" y="408" font-size="12" fill="#6b5e4a" text-anchor="middle">24B</text> 
+
+      <!-- Qs old eq = 26 --> 
+
+      <line x1="280" y1="385" x2="280" y2="395" stroke="#888" stroke-width="1.5" stroke-dasharray="3,3"/> 
+
+      <text x="280" y="408" font-size="12" fill="#888" text-anchor="middle">26B</text> 
+
+      <!-- Qs new / Qd new = 28 --> 
+
+      <line x1="380" y1="385" x2="380" y2="395" stroke="#1e8449" stroke-width="1.5" stroke-dasharray="3,3"/> 
+
+      <text x="380" y="408" font-size="12" fill="#1e8449" text-anchor="middle">28B</text> 
+
+      <!-- Qd shortage = 30 --> 
+
+      <line x1="480" y1="385" x2="480" y2="395" stroke="#d35400" stroke-width="1.5" stroke-dasharray="3,3"/> 
+
+      <text x="480" y="408" font-size="12" fill="#d35400" text-anchor="middle">30B</text> 
+
+ 
+
+      <!-- Grid (subtle) --> 
+
+      <line x1="80" y1="270" x2="590" y2="270" stroke="#e0d6c8" stroke-width="1" stroke-dasharray="4,6"/> 
+
+      <line x1="80" y1="220" x2="590" y2="220" stroke="#dff0ea" stroke-width="1" stroke-dasharray="4,6"/> 
+
+      <line x1="280" y1="30" x2="280" y2="390" stroke="#e0d6c8" stroke-width="1" stroke-dasharray="4,6"/> 
+
+      <line x1="380" y1="30" x2="380" y2="390" stroke="#dff0ea" stroke-width="1" stroke-dasharray="4,6"/> 
+
+ 
+
+      <!-- ── Supply Curve (S) — static ── --> 
+
+      <!-- Passes through (24B→$5, 26B→$7, 28B→$8 approx, 30B→$10) --> 
+
+      <!-- x-coord: 80 + (qty_in_B - 22)*50; price y: 420 - price*50 --> 
+
+      <!-- At $5 → x=180, y=370; $7 → x=280,y=270; $8→x=330,y=220; $10→x=430,y=120 --> 
+
+      <path id="supply-curve" 
+
+        d="M 155,395 C 200,360 240,300 280,270 S 360,200 420,130" 
+
+        fill="none" stroke="#1a5276" stroke-width="3" stroke-linecap="round"/> 
+
+      <text x="428" y="126" font-family="Playfair Display,Georgia,serif" font-size="15" font-weight="700" fill="#1a5276">S</text> 
+
+ 
+
+      <!-- ── Original Demand Curve (D₁) ── --> 
+
+      <!-- Passes through (24B→$9, 26B→$7, 28B→$5) — downward slope --> 
+
+      <!-- x: 80+(qty-22)*50; y: 420-price*50 --> 
+
+      <!-- 24B,$9 → 180,120+30=150? Let me use: y=420-price*50 → $9→y=420-450=-30? Need rescale --> 
+
+      <!-- Scale: y = 420 - (price-4)*50 so $5→y=370, $7→y=270, $9→y=170, $10→y=120 --> 
+
+      <path id="demand1" 
+
+        d="M 155,148 C 200,190 240,230 280,270 S 360,330 430,375" 
+
+        fill="none" stroke="#7d3c98" stroke-width="3" stroke-linecap="round" 
+
+        stroke-dasharray="1,0"/> 
+
+      <text x="435" y="380" font-family="Playfair Display,Georgia,serif" font-size="15" font-weight="700" fill="#7d3c98">D₁</text> 
+
+ 
+
+      <!-- ── New Demand Curve (D₂) — shifted right ~100px ── --> 
+
+      <!-- Same shape but shifted +100 on x --> 
+
+      <path id="demand2" 
+
+        d="M 255,148 C 300,190 340,230 380,270 S 460,330 530,375" 
+
+        fill="none" stroke="#c0392b" stroke-width="3" stroke-linecap="round" 
+
+        opacity="0"/> 
+
+      <text id="d2-label" x="535" y="380" font-family="Playfair Display,Georgia,serif" font-size="15" font-weight="700" fill="#c0392b" opacity="0">D₂</text> 
+
+ 
+
+      <!-- ── Demand shift arrow (along old eq price $7 = y=270, from x=280 to x=380) ── --> 
+
+      <line id="shift-arrow" x1="295" y1="270" x2="365" y2="270" 
+
+        stroke="#c0392b" stroke-width="2.5" stroke-dasharray="6,4" 
+
+        marker-end="url(#arr-red)" opacity="0"/> 
+
+ 
+
+      <!-- ── Old Equilibrium vertical dashed line ── --> 
+
+      <line id="eq1-vline" x1="280" y1="270" x2="280" y2="390" stroke="#888" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.6"/> 
+
+      <!-- Old Equilibrium horizontal dashed line --> 
+
+      <line id="eq1-hline" x1="80" y1="270" x2="280" y2="270" stroke="#888" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.6"/> 
+
+      <!-- Old Equilibrium dot --> 
+
+      <circle id="eq1-dot" cx="280" cy="270" r="7" fill="#888" stroke="white" stroke-width="2"/> 
+
+      <text id="eq1-tag" x="258" y="262" font-size="12" font-weight="600" fill="#888">E₁</text> 
+
+ 
+
+      <!-- ── New Equilibrium (Qs=Qd=28B, P=$8 → x=380, y=220) ── --> 
+
+      <!-- vertical --> 
+
+      <line id="eq2-vline" x1="380" y1="220" x2="380" y2="390" stroke="#1e8449" stroke-width="1.5" stroke-dasharray="5,4" opacity="0"/> 
+
+      <!-- horizontal --> 
+
+      <line id="eq2-hline" x1="80" y1="220" x2="380" y2="220" stroke="#1e8449" stroke-width="1.5" stroke-dasharray="5,4" opacity="0"/> 
+
+      <!-- dot --> 
+
+      <circle id="eq2-dot" cx="380" cy="220" r="7" fill="#1e8449" stroke="white" stroke-width="2" opacity="0"/> 
+
+      <text id="eq2-tag" x="388" y="216" font-size="12" font-weight="600" fill="#1e8449" opacity="0">E₂</text> 
+
+ 
+
+      <!-- ── Shortage arrow: along old eq price ($7, y=270) from Qs=26B(x=280) to Qd_new=30B(x=480) ── --> 
+
+      <!-- Arrow runs rightward at y=270 showing shortage gap --> 
+
+      <line id="shortage-arrow" x1="290" y1="258" x2="462" y2="258" 
+
+        stroke="#d35400" stroke-width="2.5" 
+
+        marker-end="url(#arr-orange)" opacity="0"/> 
+
+      <text id="shortage-label" x="355" y="248" font-size="12" font-weight="700" fill="#d35400" text-anchor="middle" opacity="0">Shortage ≈ 4B lbs</text> 
+
+ 
+
+      <!-- ── Arrow along Supply: from E₁(280,270) up-right to E₂(380,220) ── --> 
+
+      <!-- Shows quantity supplied increases along supply curve --> 
+
+      <line id="supply-arrow" x1="286" y1="265" x2="372" y2="226" 
+
+        stroke="#1e8449" stroke-width="2.5" 
+
+        marker-end="url(#arr-green)" opacity="0"/> 
+
+      <text id="supply-arrow-label" x="310" y="235" font-size="11" font-weight="600" fill="#1e8449" text-anchor="middle" opacity="0">Qs rises</text> 
+
+ 
+
+      <!-- ── Arrow along D₂: from original price at D₂ (x=380,y=270 on D₂) up-left to E₂(380,220) ── --> 
+
+      <!-- On D₂ at price $7: qty demanded = 30B (x=480). At $8: 28B (x=380). Arrow from 480,270 to 380,220 --> 
+
+      <line id="d2-arrow" x1="473" y1="265" x2="388" y2="226" 
+
+        stroke="#c0392b" stroke-width="2.5" 
+
+        marker-end="url(#arr-red)" opacity="0"/> 
+
+      <text id="d2-arrow-label" x="445" y="238" font-size="11" font-weight="600" fill="#c0392b" text-anchor="middle" opacity="0">Qd falls</text> 
+
+ 
+
+    </svg> 
+
+  </div> 
+
+ 
+
+  <!-- Step description --> 
+
+  <div id="step-desc" role="status" aria-live="polite"> 
+
+    Press <strong>Animate Demand Shift</strong> to walk through the market adjustment step by step. 
+
+  </div> 
+
+ 
+
+  <!-- Legend --> 
+
+  <div class="legend" role="list" aria-label="Chart legend"> 
+
+    <div class="legend-item" role="listitem"> 
+
+      <div class="legend-swatch" style="background:#1a5276;"></div> 
+
+      <span>Supply (S)</span> 
+
+    </div> 
+
+    <div class="legend-item" role="listitem"> 
+
+      <div class="legend-swatch" style="background:#7d3c98;"></div> 
+
+      <span>Original Demand (D₁)</span> 
+
+    </div> 
+
+    <div class="legend-item" role="listitem"> 
+
+      <div class="legend-swatch" style="background:#c0392b;"></div> 
+
+      <span>New Demand (D₂)</span> 
+
+    </div> 
+
+    <div class="legend-item" role="listitem"> 
+
+      <div class="legend-swatch" style="background:#888;"></div> 
+
+      <span>Original Equilibrium E₁</span> 
+
+    </div> 
+
+    <div class="legend-item" role="listitem"> 
+
+      <div class="legend-swatch" style="background:#1e8449;"></div> 
+
+      <span>New Equilibrium E₂</span> 
+
+    </div> 
+
+    <div class="legend-item" role="listitem"> 
+
+      <div class="legend-swatch" style="background:#d35400;"></div> 
+
+      <span>Shortage Arrow</span> 
+
+    </div> 
+
+  </div> 
+
+ 
+
+  <!-- Data Table --> 
+
+  <div class="data-table-wrap"> 
+
+    <table aria-describedby="table-desc"> 
+
+      <caption>U.S. Beef Market — Key Equilibrium Values</caption> 
+
+      <thead> 
+
+        <tr> 
+
+          <th scope="col">Scenario</th> 
+
+          <th scope="col">Price ($/lb)</th> 
+
+          <th scope="col">Quantity (lbs/yr)</th> 
+
+          <th scope="col">Context</th> 
+
+        </tr> 
+
+      </thead> 
+
+      <tbody> 
+
+        <tr> 
+
+          <td>Original Eq. (E₁)</td> 
+
+          <td>~$7.00</td> 
+
+          <td>~26 billion</td> 
+
+          <td>Pre-surge equilibrium, 2023</td> 
+
+        </tr> 
+
+        <tr> 
+
+          <td>Shortage (at P=$7)</td> 
+
+          <td>$7.00</td> 
+
+          <td>Qd ≈ 30B vs Qs ≈ 26B</td> 
+
+          <td>~4B lb gap when demand rises but price hasn't adjusted</td> 
+
+        </tr> 
+
+        <tr> 
+
+          <td>New Eq. (E₂)</td> 
+
+          <td>~$8.32</td> 
+
+          <td>~28 billion</td> 
+
+          <td>Record high retail price, Feb 2025 (USDA/LMIC)</td> 
+
+        </tr> 
+
+      </tbody> 
+
+    </table> 
+
+    <p id="table-desc" class="sources"> 
+
+      Sources: USDA ERS, LMIC Beef Demand Index 2024–2025; all-fresh retail beef avg $8.32/lb Feb 2025; per capita consumption ~59 lbs; total U.S. consumption ~28.9B lbs/yr (USDA WASDE May 2025). 
+
+    </p> 
+
+  </div> 
+
+ 
+
+</main> 
+
+ 
+
+<script> 
+
+  // ── Animation state ────────────────────────────────────────────── 
+
+  const steps = [ 
+
+    { 
+
+      desc: "📍 <strong>Original Equilibrium (E₁):</strong> The market clears at approximately <strong>$7/lb</strong> with <strong>26 billion lbs/year</strong> consumed. This reflects the pre-demand-surge U.S. beef market.", 
+
+      sr: "Step 1: Original equilibrium at 7 dollars per pound, 26 billion pounds per year." 
+
+    }, 
+
+    { 
+
+      desc: "📈 <strong>Demand Increases (D₁ → D₂):</strong> Strengthening consumer preference for beef — driven by income growth, quality improvements, and post-COVID dining trends — shifts the demand curve rightward. At every price, consumers now want more beef.", 
+
+      sr: "Step 2: Demand increases. The demand curve shifts rightward from D1 to D2." 
+
+    }, 
+
+    { 
+
+      desc: "⚠️ <strong>Shortage Emerges:</strong> At the original price of <strong>$7/lb</strong>, quantity demanded on the new curve jumps to ~<strong>30 billion lbs</strong>, but quantity supplied remains ~<strong>26 billion lbs</strong>. This creates a <strong>shortage of ~4 billion lbs</strong>. The arrow shows this gap along the original equilibrium price.", 
+
+      sr: "Step 3: A shortage of approximately 4 billion pounds emerges at the original price of 7 dollars per pound." 
+
+    }, 
+
+    { 
+
+      desc: "🐄 <strong>Quantity Supplied Rises:</strong> The shortage puts upward pressure on price. As price rises, producers have incentive to bring more beef to market. The arrow along the supply curve shows quantity supplied increasing from <strong>26B to ~28B lbs/yr</strong>.", 
+
+      sr: "Step 4: Higher prices incentivize more supply. Quantity supplied rises from 26 to 28 billion pounds along the supply curve." 
+
+    }, 
+
+    { 
+
+      desc: "🔻 <strong>Quantity Demanded Falls on D₂:</strong> As price rises from $7 toward $8.32, consumers reduce quantity demanded along the new curve — from ~30B back toward ~28B lbs. The arrow on D₂ shows this movement.", 
+
+      sr: "Step 5: As price rises, quantity demanded falls along the new demand curve D2." 
+
+    }, 
+
+    { 
+
+      desc: "✅ <strong>New Equilibrium (E₂):</strong> Market clears at the new equilibrium — price <strong>~$8.32/lb</strong> (matching USDA's Feb 2025 record high), quantity <strong>~28 billion lbs/yr</strong>. Both higher price and higher quantity reflect a genuine demand-led increase.", 
+
+      sr: "Step 6: New equilibrium reached at approximately 8.32 dollars per pound and 28 billion pounds per year." 
+
+    } 
+
+  ]; 
+
+ 
+
+  let current = -1; 
+
+  const ids = { 
+
+    demand2:         document.getElementById('demand2'), 
+
+    d2label:         document.getElementById('d2-label'), 
+
+    shiftArrow:      document.getElementById('shift-arrow'), 
+
+    shortageArrow:   document.getElementById('shortage-arrow'), 
+
+    shortageLabel:   document.getElementById('shortage-label'), 
+
+    supplyArrow:     document.getElementById('supply-arrow'), 
+
+    supplyArrowLbl:  document.getElementById('supply-arrow-label'), 
+
+    d2Arrow:         document.getElementById('d2-arrow'), 
+
+    d2ArrowLbl:      document.getElementById('d2-arrow-label'), 
+
+    eq2vline:        document.getElementById('eq2-vline'), 
+
+    eq2hline:        document.getElementById('eq2-hline'), 
+
+    eq2dot:          document.getElementById('eq2-dot'), 
+
+    eq2tag:          document.getElementById('eq2-tag'), 
+
+    desc:            document.getElementById('step-desc'), 
+
+    srLive:          document.getElementById('sr-live'), 
+
+    btnPlay:         document.getElementById('btn-play'), 
+
+    btnReset:        document.getElementById('btn-reset'), 
+
+  }; 
+
+ 
+
+  function show(el, val=1) { el.setAttribute('opacity', val); } 
+
+  function hide(el)        { el.setAttribute('opacity', 0); } 
+
+ 
+
+  function applyStep(n) { 
+
+    // Always show D2 from step 1+ 
+
+    if (n >= 1) { show(ids.demand2); show(ids.d2label); show(ids.shiftArrow); } 
+
+    else        { hide(ids.demand2); hide(ids.d2label); hide(ids.shiftArrow); } 
+
+ 
+
+    // Shortage from step 2+ 
+
+    if (n >= 2) { show(ids.shortageArrow); show(ids.shortageLabel); } 
+
+    else        { hide(ids.shortageArrow); hide(ids.shortageLabel); } 
+
+ 
+
+    // Supply arrow from step 3+ 
+
+    if (n >= 3) { show(ids.supplyArrow); show(ids.supplyArrowLbl); } 
+
+    else        { hide(ids.supplyArrow); hide(ids.supplyArrowLbl); } 
+
+ 
+
+    // D2 movement arrow from step 4+ 
+
+    if (n >= 4) { show(ids.d2Arrow); show(ids.d2ArrowLbl); } 
+
+    else        { hide(ids.d2Arrow); hide(ids.d2ArrowLbl); } 
+
+ 
+
+    // New equilibrium from step 5+ 
+
+    if (n >= 5) { 
+
+      show(ids.eq2vline); show(ids.eq2hline); show(ids.eq2dot); show(ids.eq2tag); 
+
+      hide(ids.shortageArrow); hide(ids.shortageLabel); // shortage resolved 
+
+    } else { 
+
+      hide(ids.eq2vline); hide(ids.eq2hline); hide(ids.eq2dot); hide(ids.eq2tag); 
+
+    } 
+
+ 
+
+    // Update description 
+
+    if (n >= 0 && n < steps.length) { 
+
+      ids.desc.innerHTML = steps[n].desc; 
+
+      ids.srLive.textContent = steps[n].sr; 
+
+    } 
+
+ 
+
+    // Update button label 
+
+    if (n >= steps.length - 1) { 
+
+      ids.btnPlay.textContent = '✓ Complete'; 
+
+      ids.btnPlay.disabled = true; 
+
+      ids.btnPlay.style.opacity = '0.5'; 
+
+    } else { 
+
+      ids.btnPlay.disabled = false; 
+
+      ids.btnPlay.style.opacity = '1'; 
+
+      ids.btnPlay.textContent = n < 0 ? '▶ Animate Demand Shift' : '▶ Next Step'; 
+
+    } 
+
+  } 
+
+ 
+
+  ids.btnPlay.addEventListener('click', () => { 
+
+    if (current < steps.length - 1) { 
+
+      current++; 
+
+      applyStep(current); 
+
+    } 
+
+  }); 
+
+ 
+
+  ids.btnReset.addEventListener('click', () => { 
+
+    current = -1; 
+
+    applyStep(-1); 
+
+    ids.desc.innerHTML = 'Press <strong>Animate Demand Shift</strong> to walk through the market adjustment step by step.'; 
+
+    ids.srLive.textContent = 'Diagram reset to original equilibrium.'; 
+
+    ids.btnPlay.textContent = '▶ Animate Demand Shift'; 
+
+    ids.btnPlay.disabled = false; 
+
+    ids.btnPlay.style.opacity = '1'; 
+
+  }); 
+
+ 
+
+  // Keyboard: Space/Enter on buttons already handled by browser 
+
+</script> 
+
+ 
+
+</body> 
+
+</html> 
