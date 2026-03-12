@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Wars!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .banner {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .banner img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 4em;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+        }
+
+        .leaderboard-toggle {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-leaderboard {
+            background: #fbbf24;
+            color: #1f2937;
+        }
+
+        .btn-leaderboard:hover {
+            background: #f59e0b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .voting-section {
+            display: block;
+        }
+
+        .voting-section.hidden {
+            display: none;
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .model-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .model-header-a {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .model-header-b {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .model-header h2 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .model-name {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            display: block;
+        }
+
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .btn-vote-a {
+            background: #3b82f6;
+            color: white;
+            font-size: 1.3em;
+            padding: 25px;
+        }
+
+        .btn-vote-a:hover {
+            background: #2563eb;
+            transform: translateY(-3px);
+        }
+
+        .btn-shuffle {
+            background: #8b5cf6;
+            color: white;
+            font-size: 1.3em;
+            padding: 25px;
+        }
+
+        .btn-shuffle:hover {
+            background: #7c3aed;
+            transform: translateY(-3px);
+        }
+
+        .btn-vote-b {
+            background: #ef4444;
+            color: white;
+            font-size: 1.3em;
+            padding: 25px;
+        }
+
+        .btn-vote-b:hover {
+            background: #dc2626;
+            transform: translateY(-3px);
+        }
+
+        .stats {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        .leaderboard {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .leaderboard.visible {
+            display: block;
+        }
+
+        .leaderboard h2 {
+            text-align: center;
+            color: #1f2937;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-radius: 10px;
+            border: 2px solid #d1d5db;
+        }
+
+        .leaderboard-rank {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #8b5cf6;
+            width: 50px;
+        }
+
+        .leaderboard-name {
+            flex: 1;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .leaderboard-votes {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #8b5cf6;
+        }
+
+        @media (max-width: 768px) {
+            .models-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-row {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="banner">
+            <img src="banner.jpg" alt="Microeconomics ECO112" onerror="this.parentElement.style.display='none'">
+        </div>
+
+        <h1>⚔️ Model Wars! ⚔️</h1>
+
+        <div class="leaderboard-toggle">
+            <button class="btn btn-leaderboard" onclick="toggleLeaderboard()">
+                🏆 <span id="leaderboard-btn-text">View Leaderboard</span>
+            </button>
+        </div>
+
+        <div id="voting-section" class="voting-section">
+            <div class="models-grid">
+                <div class="model-container">
+                    <div class="model-header-a model-header">
+                        <h2>Model A</h2>
+                        <div class="model-name" id="model-a-name">Model 1</div>
+                    </div>
+                    <iframe id="iframe-a" src="model1.html" title="Model A"></iframe>
+                </div>
+
+                <div class="model-container">
+                    <div class="model-header-b model-header">
+                        <h2>Model B</h2>
+                        <div class="model-name" id="model-b-name">Model 2</div>
+                    </div>
+                    <iframe id="iframe-b" src="model2.html" title="Model B"></iframe>
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button class="btn btn-vote-a" onclick="vote('A')">
+                    Vote for Model A
+                </button>
+
+                <button class="btn btn-vote-b" onclick="vote('B')">
+                    Vote for Model B
+                </button>
+            </div>
+
+            <div class="stats">
+                Total votes cast: <span id="total-votes">0</span>
+            </div>
+        </div>
+
+        <div id="leaderboard" class="leaderboard">
+            <h2>🏆 Top 10 Models</h2>
+            <div id="leaderboard-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Model URLs - replace with your actual models
+        const models = Array.from({ length: 40 }, (_, i) => ({
+            id: i + 1,
+            url: i < 4 ? `model${i + 1}.html` : `https://claude.ai/public/artifacts/placeholder-${i + 1}`,
+            name: `Model ${i + 1}`
+        }));
+
+        let currentModelA = null;
+        let currentModelB = null;
+        let votes = {};
+        let showingLeaderboard = false;
+
+        // Load votes from storage
+        async function loadVotes() {
+            try {
+                const result = await window.storage.get('model-wars-votes', true);
+                if (result && result.value) {
+                    votes = JSON.parse(result.value);
+                    updateStats();
+                }
+            } catch (error) {
+                console.log('No existing votes found');
+            }
+            shuffle();
+        }
+
+        // Save votes to storage
+        async function saveVotes() {
+            try {
+                await window.storage.set('model-wars-votes', JSON.stringify(votes), true);
+            } catch (error) {
+                console.error('Error saving votes:', error);
+            }
+        }
+
+        // Shuffle models
+        function shuffle() {
+            const shuffled = [...models].sort(() => Math.random() - 0.5);
+            currentModelA = shuffled[0];
+            currentModelB = shuffled[1];
+            
+            document.getElementById('iframe-a').src = currentModelA.url;
+            document.getElementById('iframe-b').src = currentModelB.url;
+            document.getElementById('model-a-name').textContent = currentModelA.name;
+            document.getElementById('model-b-name').textContent = currentModelB.name;
+        }
+
+        // Vote for a model
+        async function vote(choice) {
+            const winner = choice === 'A' ? currentModelA : currentModelB;
+            votes[winner.id] = (votes[winner.id] || 0) + 1;
+            await saveVotes();
+            updateStats();
+            shuffle();
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = Object.values(votes).reduce((a, b) => a + b, 0);
+            document.getElementById('total-votes').textContent = total;
+        }
+
+        // Toggle leaderboard
+        function toggleLeaderboard() {
+            showingLeaderboard = !showingLeaderboard;
+            const votingSection = document.getElementById('voting-section');
+            const leaderboard = document.getElementById('leaderboard');
+            const btnText = document.getElementById('leaderboard-btn-text');
+
+            if (showingLeaderboard) {
+                votingSection.classList.add('hidden');
+                leaderboard.classList.add('visible');
+                btnText.textContent = 'Back to Voting';
+                updateLeaderboard();
+            } else {
+                votingSection.classList.remove('hidden');
+                leaderboard.classList.remove('visible');
+                btnText.textContent = 'View Leaderboard';
+            }
+        }
+
+        // Update leaderboard
+        function updateLeaderboard() {
+            const sorted = models
+                .map(model => ({
+                    ...model,
+                    votes: votes[model.id] || 0
+                }))
+                .sort((a, b) => b.votes - a.votes)
+                .slice(0, 10);
+
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = sorted.map((model, index) => `
+                <div class="leaderboard-item">
+                    <div class="leaderboard-rank">#${index + 1}</div>
+                    <div class="leaderboard-name">${model.name}</div>
+                    <div class="leaderboard-votes">
+                        🏆 ${model.votes} ${model.votes === 1 ? 'vote' : 'votes'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize
+        loadVotes();
+    </script>
+</body>
+</html>
