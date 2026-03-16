@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Honey Market – Interactive Supply Shift Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --honey-1:#7B3A00;--honey-2:#B85C00;--honey-3:#E07B0A;
+  --honey-4:#F5A623;--honey-5:#FDECC8;--honey-6:#FFF7ED;
+  --cream:#FFFBF3;--ink:#1C0F00;--ink-2:#4A2E0A;
+  --ink-3:#7B5533;--ink-4:#A87B4F;
+  --s1:#D4700A;--s2:#C0392B;--dem:#1A6B4A;--eq:#7B3A00;
+  --focus:#1A6B4A;--radius:14px;
+  --shadow:0 4px 24px rgba(123,58,0,.10);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh}
+.skip{position:absolute;top:-9999px;left:1rem;background:var(--focus);color:#fff;padding:.6rem 1.2rem;border-radius:0 0 8px 8px;font-weight:600;font-size:.9rem;text-decoration:none;z-index:999;transition:top .2s}
+.skip:focus{top:0}
+header{background:linear-gradient(120deg,var(--honey-1) 0%,var(--honey-2) 55%,var(--honey-3) 100%);color:#fff;padding:2rem 2.5rem 1.8rem;position:relative;overflow:hidden}
+header::before{content:'🍯';position:absolute;right:2rem;top:50%;transform:translateY(-50%);font-size:5rem;opacity:.15;pointer-events:none}
+header h1{font-family:'Lora',serif;font-size:clamp(1.4rem,3vw,2rem);line-height:1.2;letter-spacing:.01em}
+header .sub{font-size:.92rem;opacity:.85;margin-top:.4rem;font-weight:300;max-width:52ch;line-height:1.5}
+main{max-width:1060px;margin:0 auto;padding:2rem 1.5rem 4rem;display:grid;grid-template-columns:1fr 320px;grid-template-rows:auto auto;gap:1.6rem;align-items:start}
+@media(max-width:740px){main{grid-template-columns:1fr}header::before{display:none}}
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);border:1.5px solid var(--honey-5);padding:1.4rem 1.5rem 1.3rem}
+.card-title{font-family:'Lora',serif;font-size:1rem;color:var(--honey-1);margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
+.chart-card{grid-column:1;grid-row:1/3}
+@media(max-width:740px){.chart-card{grid-column:1;grid-row:auto}}
+#mc{width:100%;height:auto;display:block;border-radius:8px}
+.legend{display:flex;flex-wrap:wrap;gap:.5rem 1.2rem;margin-top:1rem;font-size:.8rem;color:var(--ink-2)}
+.leg{display:flex;align-items:center;gap:.45rem}
+.leg-line{width:24px;height:3px;border-radius:2px;flex-shrink:0}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 2px currentColor}
+.ctrl-card{grid-column:2;grid-row:1}
+.data-card{grid-column:2;grid-row:2}
+@media(max-width:740px){.ctrl-card,.data-card{grid-column:1;grid-row:auto}}
+.slbl{font-size:.83rem;font-weight:600;color:var(--ink-2);display:block;margin-bottom:.5rem}
+.swrap{display:flex;align-items:center;gap:.7rem}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:7px;border-radius:4px;background:linear-gradient(to right,var(--honey-3) 0%,var(--honey-3) var(--pct,0%),var(--honey-5) var(--pct,0%),var(--honey-5) 100%);outline:none;cursor:pointer}
+input[type=range]:focus{outline:3px solid var(--focus);outline-offset:3px;border-radius:5px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--honey-3);border:3px solid #fff;box-shadow:0 1px 8px rgba(123,58,0,.3);cursor:pointer;transition:transform .1s,background .1s}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--honey-2);transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--honey-3);border:3px solid #fff;box-shadow:0 1px 8px rgba(123,58,0,.3);cursor:pointer}
+.sval{font-size:.88rem;font-weight:600;color:var(--honey-1);min-width:3.4ch;text-align:right;font-variant-numeric:tabular-nums}
+.shint{font-size:.75rem;color:var(--ink-4);margin-top:.45rem;line-height:1.4}
+.btn-reset{margin-top:1rem;background:none;border:1.5px solid var(--honey-3);color:var(--honey-2);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;padding:.42rem 1rem;cursor:pointer;transition:background .15s,color .15s}
+.btn-reset:hover{background:var(--honey-4);color:var(--honey-1)}
+.btn-reset:focus{outline:3px solid var(--focus);outline-offset:2px}
+.short-box{margin-top:1rem;background:linear-gradient(135deg,#fff5f5,#ffeaea);border:1.5px solid #f4a0a0;border-radius:10px;padding:.9rem 1rem}
+.short-box[hidden]{display:none}
+.short-box h3{font-family:'Lora',serif;font-size:.88rem;color:#8b1a1a;margin-bottom:.3rem}
+.short-box p{font-size:.78rem;color:#6b3030;line-height:1.55}
+.short-amt{display:block;font-size:1.35rem;font-weight:700;color:#C0392B;margin:.3rem 0 .4rem;font-variant-numeric:tabular-nums}
+.narr{background:var(--honey-6);border-left:4px solid var(--honey-3);border-radius:0 8px 8px 0;padding:.8rem 1rem;margin-top:1rem;font-size:.79rem;color:var(--ink-2);line-height:1.6}
+.narr strong{color:var(--honey-1)}
+table{width:100%;border-collapse:collapse;font-size:.83rem;font-variant-numeric:tabular-nums}
+thead th{text-align:left;padding:.2rem .35rem .5rem;border-bottom:1.5px solid var(--honey-5);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4)}
+tbody td{padding:.36rem .35rem;border-bottom:1px solid var(--honey-5);color:var(--ink-2)}
+tbody tr:last-child td{border-bottom:none}
+.td-l{color:var(--ink-3);font-size:.78rem}
+.td-o{color:var(--ink-3)}
+.td-n{font-weight:600;color:var(--honey-1)}
+.td-c{font-weight:600;font-size:.78rem}
+.cup{color:#C0392B}.cdn{color:#1A6B4A}.c0{color:var(--ink-4)}
+#sr-s{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+</style>
+</head>
+<body>
+<a href="#main" class="skip">Skip to main content</a>
+<div id="sr-s" aria-live="polite" aria-atomic="true" role="status"></div>
+
+<header role="banner">
+  <h1>Honey Market — Supply Shift Model</h1>
+  <p class="sub">An interactive microeconomics model: see how a decrease in supply creates a shortage and drives the market to a new equilibrium.</p>
+</header>
+
+<main id="main" role="main">
+
+  <!-- Chart -->
+  <section class="card chart-card" aria-labelledby="ch">
+    <h2 class="card-title" id="ch"><span aria-hidden="true">📈</span> Supply &amp; Demand — Honey (lbs / month)</h2>
+    <canvas id="mc" width="580" height="430"
+      role="img"
+      aria-label="Supply and demand diagram for honey. Demand slopes downward, supply slopes upward. Move the slider to shift supply left and observe the shortage region and new equilibrium.">
+    </canvas>
+    <div class="legend" role="list" aria-label="Chart legend">
+      <div class="leg" role="listitem"><div class="leg-line" style="background:var(--dem)"></div><span>Demand (D)</span></div>
+      <div class="leg" role="listitem"><div class="leg-line" style="background:var(--s1)"></div><span>Original Supply (S₁)</span></div>
+      <div class="leg" role="listitem"><div class="leg-line" style="background:var(--s2)"></div><span>New Supply (S₂)</span></div>
+      <div class="leg" role="listitem"><div class="leg-dot" style="color:var(--eq);background:var(--eq)"></div><span>E₁ Original Equilibrium</span></div>
+      <div class="leg" role="listitem"><div class="leg-dot" style="color:var(--s2);background:var(--s2)"></div><span>E₂ New Equilibrium</span></div>
+    </div>
+  </section>
+
+  <!-- Controls -->
+  <section class="card ctrl-card" aria-labelledby="ctrlh">
+    <h2 class="card-title" id="ctrlh"><span aria-hidden="true">🎚️</span> Supply Shift Control</h2>
+    <label class="slbl" for="sl">Supply Decrease: <span id="spct">0</span>%</label>
+    <div class="swrap">
+      <span aria-hidden="true" style="font-size:.82rem;color:var(--ink-4)">0%</span>
+      <input type="range" id="sl" min="0" max="45" step="1" value="0"
+        aria-valuemin="0" aria-valuemax="45" aria-valuenow="0"
+        aria-describedby="sdesc" style="--pct:0%">
+      <span aria-hidden="true" style="font-size:.82rem;color:var(--ink-4)">−45%</span>
+    </div>
+    <p class="shint" id="sdesc">Drag right to reduce market supply — simulating a drought, bee colony collapse, or rising input costs.</p>
+    <button class="btn-reset" id="rbt" type="button" aria-label="Reset model to original equilibrium">↺ Reset to E₁</button>
+
+    <div class="short-box" id="sbox" role="alert" hidden>
+      <h3>⚠ Shortage Detected</h3>
+      <span class="short-amt" id="samt"></span>
+      <p id="sdsc"></p>
+    </div>
+
+    <div class="narr" id="narr" aria-live="polite"></div>
+  </section>
+
+  <!-- Data table -->
+  <section class="card data-card" aria-labelledby="dath">
+    <h2 class="card-title" id="dath"><span aria-hidden="true">📊</span> Market Data</h2>
+    <table aria-label="Market equilibrium values before and after supply shift">
+      <thead>
+        <tr>
+          <th scope="col">Variable</th>
+          <th scope="col">E₁</th>
+          <th scope="col">E₂ (New)</th>
+          <th scope="col">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="td-l">Price ($/lb)</td><td class="td-o">$5.00</td><td class="td-n" id="tp">$5.00</td><td class="td-c c0" id="cp">—</td></tr>
+        <tr><td class="td-l">Qty Demanded</td><td class="td-o">37,000</td><td class="td-n" id="tqd">37,000</td><td class="td-c c0" id="cqd">—</td></tr>
+        <tr><td class="td-l">Qty Supplied</td><td class="td-o">37,000</td><td class="td-n" id="tqs">37,000</td><td class="td-c c0" id="cqs">—</td></tr>
+        <tr><td class="td-l">Eq. Quantity</td><td class="td-o">37,000</td><td class="td-n" id="tqe">37,000</td><td class="td-c c0" id="cqe">—</td></tr>
+      </tbody>
+    </table>
+    <div class="narr" style="margin-top:.9rem;font-size:.78rem">
+      <strong>Adjustment mechanism:</strong><br>
+      After the supply shift, at the old price: <em>Qd &gt; Qs</em> → <strong style="color:#C0392B">shortage</strong>. Rising prices cause <strong style="color:#1A6B4A">Qd ↓</strong> and <strong style="color:#C0392B">Qs ↑</strong> until the market clears at E₂.
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ── Model: Linear S&D through E₁=(Q=37000, P=5) ─────────────────────────────
+// Demand:  P = 15 − (10/37000)·Q
+// Supply:  P = −5 + (10/37000)·Q   (intercept shifts left with supply decrease)
+const Q0=37000, P0=5;
+const Pdi=15, Pds=-(10/Q0);           // demand intercept & slope (inverse)
+const Pss= 10/Q0, Psi0=-5;            // supply slope & original intercept
+
+const QMAX=62000, PMAX=16, QMIN=0, PMIN=0;
+const PAD={t:30,r:30,b:55,l:62};
+const cv=document.getElementById('mc'), cx=cv.getContext('2d');
+
+const W=()=>cv.width, H=()=>cv.height;
+const PW=()=>W()-PAD.l-PAD.r, PH=()=>H()-PAD.t-PAD.b;
+const toX=q=>PAD.l+(q-QMIN)/(QMAX-QMIN)*PW();
+const toY=p=>PAD.t+(PMAX-p)/(PMAX-PMIN)*PH();
+const Qd=p=>(p-Pdi)/Pds;
+const Qs=(p,i)=>(p-i)/Pss;
+const sInt=pct=>Psi0+(pct/100)*(P0*2.4);  // shift intercept upward
+const newEq=i=>{const Q=(Pdi-i)/(Pss-Pds);return{Q:Math.round(Q),P:+(Pdi+Pds*Q).toFixed(2)}};
+
+function draw(pct){
+  cx.clearRect(0,0,W(),H());
+  const i2=sInt(pct), eq=newEq(i2), shifted=pct>0;
+
+  // bg
+  cx.fillStyle='#FDFAF5'; cx.fillRect(0,0,W(),H());
+
+  // grid
+  cx.strokeStyle='rgba(123,58,0,.07)'; cx.lineWidth=1;
+  [2,4,6,8,10,12,14].forEach(p=>{cx.beginPath();cx.moveTo(PAD.l,toY(p));cx.lineTo(PAD.l+PW(),toY(p));cx.stroke()});
+  [10000,20000,30000,40000,50000,60000].forEach(q=>{cx.beginPath();cx.moveTo(toX(q),PAD.t);cx.lineTo(toX(q),PAD.t+PH());cx.stroke()});
+
+  // shortage shading
+  if(shifted){
+    const qs0=Qs(P0,i2);
+    cx.beginPath();
+    cx.moveTo(toX(Math.max(qs0,0)),toY(P0));
+    cx.lineTo(toX(Q0),toY(P0));
+    cx.lineTo(toX(eq.Q),toY(eq.P));
+    cx.closePath();
+    cx.fillStyle='rgba(192,57,43,.10)'; cx.fill();
+    cx.fillStyle='rgba(192,57,43,.55)';
+    cx.font='italic 11px Lora,serif'; cx.textAlign='center';
+    cx.fillText('shortage',(toX(Math.max(qs0,0))+toX(Q0))/2,toY(P0)-9);
+  }
+
+  // S1
+  cx.beginPath();
+  cx.strokeStyle='#D4700A'; cx.lineWidth=shifted?1.8:2.4;
+  cx.globalAlpha=shifted?.4:1; cx.setLineDash(shifted?[7,5]:[]);
+  const ps1=Math.max(Psi0,PMIN);
+  cx.moveTo(toX(Qs(ps1,Psi0)),toY(ps1));
+  cx.lineTo(toX(Qs(PMAX,Psi0)),toY(PMAX)); cx.stroke();
+  cx.globalAlpha=1; cx.setLineDash([]);
+  cx.fillStyle=shifted?'rgba(212,112,10,.4)':'#D4700A';
+  cx.font='bold 12px DM Sans,sans-serif'; cx.textAlign='left';
+  cx.fillText('S₁',toX(Qs(PMAX*.9,Psi0))+5,toY(PMAX*.9)-4);
+
+  // S2
+  if(shifted){
+    cx.beginPath(); cx.strokeStyle='#C0392B'; cx.lineWidth=2.4; cx.setLineDash([]);
+    const ps2=Math.max(i2,PMIN);
+    cx.moveTo(toX(Math.max(Qs(ps2,i2),0)),toY(ps2));
+    cx.lineTo(toX(Qs(PMAX,i2)),toY(PMAX)); cx.stroke();
+    cx.fillStyle='#C0392B'; cx.font='bold 12px DM Sans,sans-serif'; cx.textAlign='left';
+    cx.fillText('S₂',toX(Qs(PMAX*.85,i2))+5,toY(PMAX*.85)-4);
+  }
+
+  // Demand
+  cx.beginPath(); cx.strokeStyle='#1A6B4A'; cx.lineWidth=2.4; cx.setLineDash([]);
+  cx.moveTo(toX(Math.max(Qd(Math.min(Pdi,PMAX)),0)),toY(Math.min(Pdi,PMAX)));
+  cx.lineTo(toX(Math.min(Qd(PMIN),QMAX)),toY(PMIN)); cx.stroke();
+  cx.fillStyle='#1A6B4A'; cx.font='bold 12px DM Sans,sans-serif'; cx.textAlign='right';
+  cx.fillText('D',toX(Math.min(Qd(PMIN+.5),QMAX))-4,toY(PMIN+.5)+2);
+
+  // Old eq dashed lines
+  cx.setLineDash([4,4]); cx.strokeStyle='rgba(123,58,0,.25)'; cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(PAD.l,toY(P0));cx.lineTo(toX(Q0),toY(P0));cx.stroke();
+  cx.beginPath();cx.moveTo(toX(Q0),toY(P0));cx.lineTo(toX(Q0),PAD.t+PH());cx.stroke();
+  cx.setLineDash([]);
+
+  // New eq dashed lines
+  if(shifted){
+    cx.setLineDash([4,4]); cx.strokeStyle='rgba(192,57,43,.3)'; cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(PAD.l,toY(eq.P));cx.lineTo(toX(eq.Q),toY(eq.P));cx.stroke();
+    cx.beginPath();cx.moveTo(toX(eq.Q),toY(eq.P));cx.lineTo(toX(eq.Q),PAD.t+PH());cx.stroke();
+    cx.setLineDash([]);
+  }
+
+  // Adjustment arrows
+  if(shifted){
+    const qs0=Qs(P0,i2);
+    arw(cx,toX(qs0),toY(P0)-22,toX(eq.Q)-2,toY(P0)-22,'#C0392B','Qs ↑');
+    arw(cx,toX(Q0)+2,toY(P0)+22,toX(eq.Q)+2,toY(P0)+22,'#1A6B4A','Qd ↓');
+    arw(cx,toX(8000),toY(P0)+2,toX(8000),toY(eq.P)-2,'#C0392B','P ↑',true);
+  }
+
+  // Dots
+  dot(cx,toX(Q0),toY(P0),'#7B3A00','E₁');
+  if(shifted) dot(cx,toX(eq.Q),toY(eq.P),'#C0392B','E₂');
+
+  // Axes
+  cx.strokeStyle='rgba(28,15,0,.6)'; cx.lineWidth=1.5; cx.setLineDash([]);
+  cx.beginPath();cx.moveTo(PAD.l,PAD.t-5);cx.lineTo(PAD.l,PAD.t+PH()+5);cx.stroke();
+  cx.beginPath();cx.moveTo(PAD.l-5,PAD.t+PH());cx.lineTo(PAD.l+PW()+5,PAD.t+PH());cx.stroke();
+  axArw(cx,PAD.l,PAD.t-5,'u'); axArw(cx,PAD.l+PW()+5,PAD.t+PH(),'r');
+
+  // Tick labels
+  cx.fillStyle='rgba(28,15,0,.55)'; cx.font='11px DM Sans,sans-serif'; cx.textAlign='right';
+  [2,4,6,8,10,12,14].forEach(p=>cx.fillText('$'+p,PAD.l-6,toY(p)+4));
+  cx.textAlign='center';
+  [10,20,30,40,50,60].forEach(q=>cx.fillText(q+'K',toX(q*1000),PAD.t+PH()+18));
+
+  // Axis titles
+  cx.font='bold 11.5px DM Sans,sans-serif'; cx.fillStyle='rgba(28,15,0,.45)';
+  cx.textAlign='center';
+  cx.fillText('Quantity (lbs / month)',PAD.l+PW()/2,H()-8);
+  cx.save();cx.translate(14,PAD.t+PH()/2);cx.rotate(-Math.PI/2);cx.fillText('Price ($ / lb)',0,0);cx.restore();
+
+  // Highlight P labels on Y
+  cx.fillStyle='#7B3A00'; cx.font='bold 10px DM Sans,sans-serif'; cx.textAlign='right';
+  cx.fillText('$5.00',PAD.l-6,toY(P0)+4);
+  if(shifted&&eq.P!==P0){cx.fillStyle='#C0392B';cx.fillText('$'+eq.P.toFixed(2),PAD.l-6,toY(eq.P)+4)}
+
+  return eq;
+}
+
+function dot(c,x,y,col,lbl){
+  c.beginPath();c.arc(x,y,5.5,0,Math.PI*2);c.fillStyle=col;c.fill();
+  c.strokeStyle='#fff';c.lineWidth=2;c.stroke();
+  c.fillStyle=col;c.font='bold 11px DM Sans,sans-serif';c.textAlign='left';
+  c.fillText(lbl,x+8,y-6);
+}
+function arw(c,x1,y1,x2,y2,col,lbl,vert=false){
+  if(Math.abs(x2-x1)<3&&Math.abs(y2-y1)<3)return;
+  c.save();c.strokeStyle=col;c.fillStyle=col;c.lineWidth=1.5;c.setLineDash([]);
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  c.beginPath();c.moveTo(x2,y2);
+  c.lineTo(x2-8*Math.cos(a-.4),y2-8*Math.sin(a-.4));
+  c.lineTo(x2-8*Math.cos(a+.4),y2-8*Math.sin(a+.4));
+  c.closePath();c.fill();
+  if(lbl){c.font='9.5px DM Sans,sans-serif';c.textAlign=vert?'left':'center';const mx=(x1+x2)/2,my=(y1+y2)/2;c.fillText(lbl,vert?mx+5:mx,vert?my:my-5)}
+  c.restore();
+}
+function axArw(c,x,y,d){
+  c.fillStyle='rgba(28,15,0,.6)';c.beginPath();
+  if(d==='u'){c.moveTo(x,y);c.lineTo(x-4,y+8);c.lineTo(x+4,y+8)}
+  else{c.moveTo(x,y);c.lineTo(x-8,y-4);c.lineTo(x-8,y+4)}
+  c.closePath();c.fill();
+}
+
+// ── UI wiring ─────────────────────────────────────────────────────────────────
+const sl=document.getElementById('sl');
+const spct=document.getElementById('spct');
+const sbox=document.getElementById('sbox');
+const samt=document.getElementById('samt');
+const sdsc=document.getElementById('sdsc');
+const narr=document.getElementById('narr');
+const srs=document.getElementById('sr-s');
+let srTimer;
+
+const fmt=n=>n.toLocaleString();
+const pf=p=>'$'+p.toFixed(2);
+
+function setChg(id,nv,ov,upRed=true){
+  const el=document.getElementById(id);
+  const d=nv-ov;
+  if(Math.abs(d)<0.5){el.textContent='—';el.className='td-c c0';return}
+  const up=d>0, pct=((d/ov)*100).toFixed(1);
+  el.textContent=(up?'▲ ':'▼ ')+Math.abs(pct)+'%';
+  el.className='td-c '+(up?(upRed?'cup':'cdn'):(upRed?'cdn':'cup'));
+}
+
+function update(){
+  const pct=+sl.value;
+  sl.style.setProperty('--pct',(pct/45*100)+'%');
+  sl.setAttribute('aria-valuenow',pct);
+  spct.textContent=pct;
+
+  const i2=sInt(pct), eq=draw(pct), shifted=pct>0;
+  const qs0=Math.round(Qs(P0,i2));
+  const short=Math.round(Q0-qs0);
+  const qd2=Math.round(Qd(eq.P));
+  const qs2=Math.round(Qs(eq.P,i2));
+
+  document.getElementById('tp').textContent=pf(eq.P);
+  document.getElementById('tqd').textContent=fmt(qd2);
+  document.getElementById('tqs').textContent=fmt(qs2);
+  document.getElementById('tqe').textContent=fmt(eq.Q);
+  setChg('cp',eq.P,P0,true);
+  setChg('cqd',qd2,Q0,true);
+  setChg('cqs',qs2,Q0,false);
+  setChg('cqe',eq.Q,Q0,true);
+
+  if(shifted&&short>0){
+    sbox.hidden=false;
+    samt.textContent=fmt(short)+' lbs/month';
+    sdsc.textContent=`At $${P0.toFixed(2)}, buyers want ${fmt(Q0)} lbs but suppliers now offer only ${fmt(qs0)} lbs — a shortage of ${fmt(short)} lbs. This upward pressure on price drives the market toward E₂.`;
+  } else { sbox.hidden=true; }
+
+  if(!shifted){
+    narr.innerHTML='<strong>Starting position (E₁):</strong> The honey market is in equilibrium at <strong>P = $5.00</strong> and <strong>Q = 37,000 lbs/month</strong>. Quantity demanded equals quantity supplied — no shortage or surplus.';
+  } else {
+    narr.innerHTML=`<strong>Supply fell by ${pct}%</strong> — perhaps due to drought or colony collapse. At the old price a shortage of <strong>${fmt(short)} lbs</strong> emerged. Rising prices cause <strong style="color:#1A6B4A">quantity demanded to fall</strong> to ${fmt(qd2)} lbs and <strong style="color:#C0392B">quantity supplied to rise</strong> toward ${fmt(qs2)} lbs, restoring equilibrium at <strong>${pf(eq.P)}</strong> / ${fmt(eq.Q)} lbs/month.`;
+  }
+
+  clearTimeout(srTimer);
+  srTimer=setTimeout(()=>{
+    srs.textContent=!shifted
+      ?'Market at original equilibrium. Price $5.00, quantity 37,000 pounds per month.'
+      :`Supply decreased by ${pct} percent. Shortage of ${fmt(short)} pounds at old price. New equilibrium: price ${pf(eq.P)}, quantity ${fmt(eq.Q)} pounds per month.`;
+  },300);
+}
+
+sl.addEventListener('input',update);
+document.getElementById('rbt').addEventListener('click',()=>{sl.value=0;update();sl.focus()});
+sl.addEventListener('keydown',e=>{if(e.key==='Home'){sl.value=0;update()}if(e.key==='End'){sl.value=45;update()}});
+
+update();
+</script>
+</body>
+</html>
+
