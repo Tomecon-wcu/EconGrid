@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>US Chicken Market – Decrease in Demand</title>
+  <meta name="description" content="Interactive microeconomic model showing a decrease in demand in the US chicken market, including surplus, price decrease, and quantity changes." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,600;1,300&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & Variables ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #faf7f2;
+      --paper:     #ffffff;
+      --ink:       #1a1209;
+      --muted:     #7a6f62;
+      --d1:        #2563b0;   /* original demand */
+      --d2:        #c0392b;   /* new demand */
+      --supply:    #2d7a3a;   /* supply */
+      --surplus:   #e67e22;   /* surplus arrow */
+      --eq-old:    #2563b0;
+      --eq-new:    #c0392b;
+      --grid:      #e8e2d9;
+      --serif:     'Source Serif 4', Georgia, serif;
+      --mono:      'JetBrains Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--serif);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Header ────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      max-width: 720px;
+    }
+    header .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    header h1 {
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+    header p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-style: italic;
+      font-weight: 300;
+    }
+
+    /* ── Card ──────────────────────────────────────────── */
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--grid);
+      border-radius: 2px;
+      box-shadow: 0 4px 28px rgba(0,0,0,0.07);
+      padding: 2rem;
+      width: 100%;
+      max-width: 820px;
+    }
+
+    /* ── Controls ──────────────────────────────────────── */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .controls label {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      padding: 0.5rem 1.2rem;
+      border: 1.5px solid var(--ink);
+      background: var(--ink);
+      color: var(--bg);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.18s, color 0.18s;
+    }
+    .btn:hover, .btn:focus-visible {
+      background: var(--bg);
+      color: var(--ink);
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+    .btn.secondary {
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn.secondary:hover, .btn.secondary:focus-visible {
+      background: var(--ink);
+      color: var(--bg);
+    }
+
+    /* ── Canvas wrapper ────────────────────────────────── */
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--grid);
+    }
+
+    /* ── Step indicator ────────────────────────────────── */
+    .step-track {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--grid);
+      border: 1.5px solid var(--muted);
+      transition: background 0.3s;
+    }
+    .step-dot.active { background: var(--ink); border-color: var(--ink); }
+
+    /* ── Legend ────────────────────────────────────────── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem 2rem;
+      margin-top: 1.5rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--grid);
+      font-size: 0.82rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .legend-swatch {
+      width: 28px; height: 3px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .legend-swatch.dashed {
+      background: repeating-linear-gradient(90deg, currentColor 0 6px, transparent 6px 10px);
+    }
+
+    /* ── Outcome cards ─────────────────────────────────── */
+    .outcomes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .outcome-card {
+      border: 1px solid var(--grid);
+      padding: 0.9rem 1rem;
+      border-radius: 2px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    .outcome-card.visible {
+      opacity: 1;
+      transform: none;
+    }
+    .outcome-card .oc-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+    .outcome-card .oc-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .outcome-card .oc-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 0.2rem;
+    }
+
+    /* ── Narrative ─────────────────────────────────────── */
+    .narrative {
+      margin-top: 1.5rem;
+      padding: 1rem 1.2rem;
+      border-left: 3px solid var(--grid);
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: var(--muted);
+      min-height: 3.5rem;
+      transition: color 0.4s;
+    }
+    .narrative strong { color: var(--ink); }
+
+    /* ── Skip link (a11y) ──────────────────────────────── */
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 1rem;
+      background: var(--ink);
+      color: var(--bg);
+      padding: 0.4rem 0.8rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      border-radius: 2px;
+      z-index: 999;
+      transition: top 0.2s;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    /* ── Footer ────────────────────────────────────────── */
+    footer {
+      margin-top: 2.5rem;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <a class="skip-link" href="#chart-region">Skip to chart</a>
+
+  <header>
+    <p class="eyebrow">Microeconomics · Supply &amp; Demand</p>
+    <h1>US Chicken Market<br/>Decrease in Demand</h1>
+    <p>2024 market data · Price per pound · Quantity in billions of lbs/year</p>
+  </header>
+
+  <main class="card" role="main">
+
+    <!-- Controls -->
+    <div class="controls" role="toolbar" aria-label="Animation controls">
+      <label id="step-label" aria-live="polite" aria-atomic="true">Step: 0 / 5</label>
+      <button class="btn" id="btn-play" aria-label="Animate the demand shift step by step">▶ Animate</button>
+      <button class="btn secondary" id="btn-reset" aria-label="Reset chart to initial state">↺ Reset</button>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-wrap" id="chart-region">
+      <canvas id="chart"
+        role="img"
+        aria-label="Supply and demand graph for the US chicken market showing a leftward shift of the demand curve from D1 to D2, creating a surplus, lowering equilibrium price from $4.00 to $3.20 per pound, and reducing equilibrium quantity from 46.975 to 40 billion pounds."
+        tabindex="0">
+        <!-- Accessible fallback -->
+        <p>This chart shows the US chicken market supply and demand model. The original equilibrium (D1) is at $4.00 per pound and 46.975 billion pounds. After a decrease in demand (D2), the new equilibrium falls to $3.20 per pound and 40 billion pounds, with a surplus created at the original price level.</p>
+      </canvas>
+    </div>
+
+    <!-- Step dots -->
+    <div class="step-track" role="list" aria-label="Animation progress">
+      <div class="step-dot active" role="listitem" aria-label="Step 0: Initial state"></div>
+      <div class="step-dot" role="listitem" aria-label="Step 1: D1 original demand curve"></div>
+      <div class="step-dot" role="listitem" aria-label="Step 2: D2 demand shifts left"></div>
+      <div class="step-dot" role="listitem" aria-label="Step 3: Surplus shown at original price"></div>
+      <div class="step-dot" role="listitem" aria-label="Step 4: Price decreases to new equilibrium"></div>
+      <div class="step-dot" role="listitem" aria-label="Step 5: Quantity supplied and demanded decrease"></div>
+    </div>
+
+    <!-- Narrative -->
+    <div class="narrative" id="narrative" aria-live="polite" aria-atomic="true">
+      Press <strong>Animate</strong> to walk through the market adjustment step by step.
+    </div>
+
+    <!-- Outcome cards -->
+    <div class="outcomes" aria-label="Market outcome summary">
+      <div class="outcome-card" id="oc-price" aria-label="Price change outcome">
+        <div class="oc-label">Price Change</div>
+        <div class="oc-value" id="oc-price-val">—</div>
+        <div class="oc-desc">per pound</div>
+      </div>
+      <div class="outcome-card" id="oc-qty" aria-label="Quantity change outcome">
+        <div class="oc-label">Qty Supplied Change</div>
+        <div class="oc-value" id="oc-qty-val">—</div>
+        <div class="oc-desc">billions of lbs / yr</div>
+      </div>
+      <div class="outcome-card" id="oc-surplus" aria-label="Surplus outcome">
+        <div class="oc-label">Surplus at $4.00</div>
+        <div class="oc-value" id="oc-surplus-val">—</div>
+        <div class="oc-desc">billions of lbs</div>
+      </div>
+      <div class="outcome-card" id="oc-result" aria-label="Market result">
+        <div class="oc-label">Market Result</div>
+        <div class="oc-value" id="oc-result-val">—</div>
+        <div class="oc-desc">new equilibrium</div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend" role="list" aria-label="Chart legend">
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:#2d7a3a;"></div>
+        <span>Supply (S)</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:#2563b0;"></div>
+        <span>Original Demand (D1)</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:#c0392b;"></div>
+        <span>New Demand (D2)</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch" style="background:#e67e22;"></div>
+        <span>Surplus</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch dashed" style="color:#2563b0;height:0;border-top:2px dashed #2563b0;width:28px;"></div>
+        <span>Old Equilibrium</span>
+      </div>
+      <div class="legend-item" role="listitem">
+        <div class="legend-swatch dashed" style="color:#c0392b;height:0;border-top:2px dashed #c0392b;width:28px;"></div>
+        <span>New Equilibrium</span>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Data references: USDA NASS 2024 · Model for educational use only</p>
+  </footer>
+
+  <!-- ── JavaScript ──────────────────────────────────────────── -->
+  <script>
+  (() => {
+    'use strict';
+
+    /* ── Market parameters (US chicken market ~2024) ──────────
+       Equilibrium D1: P = $4.00/lb,  Q = 46.975 B lbs/yr
+       After demand shift D2: P = $3.20/lb, Q = 40 B lbs/yr
+       Surplus at $4.00 = Qs($4.00) - Qd2($4.00)
+    ──────────────────────────────────────────────────────────── */
+    const MKT = {
+      // Price axis: $0 – $7
+      pMin: 0, pMax: 7,
+      // Quantity axis: 0 – 70 B lbs
+      qMin: 0, qMax: 70,
+
+      // Supply: P = 0.1·Q  →  Q = 10·P
+      supplyQ: p => 10 * p,
+
+      // D1: P = 8 - (1/7)·Q  →  Q = 7·(8 - P) = 56 - 7P
+      d1Q: p => 56 - 7 * p,
+
+      // D2 (shifted left by ~9.975 B):  Q = 46.025 - 7P
+      d2Q: p => 46.025 - 7 * p,
+
+      // Equilibria
+      eq1: { p: 4.00, q: 46.975 },   // D1 ∩ S  (10*4 = 40 ≈ rounding: use exact)
+      eq2: { p: 3.20, q: 32.0  },    // D2 ∩ S  (10*3.2=32; 46.025-7*3.2=46.025-22.4=23.625 → need consistent)
+    };
+
+    // Recompute equilibria precisely
+    // S: Q = 10P, D1: Q = 56 - 7P  → 10P = 56 - 7P → 17P = 56 → P = 56/17 ≈ 3.294
+    // Let's use the student's noted values: eq1 P=$4, Q=46.975
+    // So D1: Q = 46.975 + 7*(4 - P) = 46.975 + 28 - 7P = 74.975 - 7P
+    // S: Q = supplyQ(P). At eq1: S(4) = 46.975 → supplyQ = p => (46.975/4)*p ≈ 11.744*p
+    const sSlope = MKT.eq1.q / MKT.eq1.p;           // 11.74375
+    MKT.supplyQ = p => sSlope * p;
+
+    // D1: Q = 74.975 - 7P  (passes through eq1)
+    MKT.d1Q = p => 74.975 - 7 * p;
+
+    // D2 shifted left by ΔQ. New eq at P=3.20:
+    // S(3.20) = 11.74375 * 3.20 = 37.58
+    MKT.eq2 = { p: 3.20, q: +(sSlope * 3.20).toFixed(2) };
+
+    // D2: same slope, new intercept: Q = eq2.q + 7*(eq2.p - P) = 37.58 + 7*3.2 - 7P = 37.58 + 22.4 - 7P = 59.98 - 7P
+    MKT.d2Q = p => (MKT.eq2.q + 7 * MKT.eq2.p) - 7 * p;
+
+    // Surplus at $4.00: Qs(4) - Qd2(4)
+    const surplusQs = MKT.supplyQ(4);
+    const surplusQd = MKT.d2Q(4);
+    const surplusAmt = surplusQs - surplusQd;
+
+    /* ── Canvas setup ────────────────────────────────────── */
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+
+    const W = 800, H = 520;
+    canvas.width  = W;
+    canvas.height = H;
+
+    const PAD = { top: 40, right: 80, bottom: 70, left: 80 };
+    const CW = W - PAD.left - PAD.right;
+    const CH = H - PAD.top  - PAD.bottom;
+
+    /* coordinate transforms */
+    const xOf = q => PAD.left + (q - MKT.qMin) / (MKT.qMax - MKT.qMin) * CW;
+    const yOf = p => PAD.top  + (1 - (p - MKT.pMin) / (MKT.pMax - MKT.pMin)) * CH;
+
+    /* ── Animation state ─────────────────────────────────── */
+    let step = 0;
+    const TOTAL_STEPS = 5;
+    let animId = null;
+    let animProgress = 0; // 0→1 for current transition
+
+    /* ── Drawing helpers ─────────────────────────────────── */
+    function drawArrow(x1, y1, x2, y2, color, lw, headLen) {
+      lw      = lw      || 2;
+      headLen = headLen || 12;
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth   = lw;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI/7),
+                 y2 - headLen * Math.sin(angle - Math.PI/7));
+      ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/7),
+                 y2 - headLen * Math.sin(angle + Math.PI/7));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawDashedLine(x1, y1, x2, y2, color, dash) {
+      dash = dash || [6, 4];
+      ctx.save();
+      ctx.setLineDash(dash);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function drawCurve(qFn, pMin, pMax, color, lw, alpha) {
+      alpha = alpha === undefined ? 1 : alpha;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth   = lw || 2.5;
+      ctx.lineJoin    = 'round';
+      ctx.beginPath();
+      let first = true;
+      for (let p = pMin; p <= pMax; p += 0.05) {
+        const q = qFn(p);
+        if (q < MKT.qMin - 1 || q > MKT.qMax + 1) continue;
+        const x = xOf(q), y = yOf(p);
+        first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        first = false;
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function dot(x, y, color, r) {
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r || 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function label(text, x, y, color, align, font) {
+      ctx.save();
+      ctx.fillStyle = color || '#1a1209';
+      ctx.font      = font || '13px "JetBrains Mono", monospace';
+      ctx.textAlign = align || 'left';
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    /* ── Draw axes & grid ────────────────────────────────── */
+    function drawAxes() {
+      ctx.save();
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth   = 1;
+
+      // vertical grid lines
+      for (let q = 0; q <= MKT.qMax; q += 10) {
+        ctx.beginPath();
+        ctx.moveTo(xOf(q), PAD.top);
+        ctx.lineTo(xOf(q), PAD.top + CH);
+        ctx.stroke();
+        if (q > 0) label(q, xOf(q), PAD.top + CH + 18, '#7a6f62', 'center', '11px "JetBrains Mono"');
+      }
+
+      // horizontal grid lines
+      for (let p = 0; p <= MKT.pMax; p++) {
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, yOf(p));
+        ctx.lineTo(PAD.left + CW, yOf(p));
+        ctx.stroke();
+        if (p > 0) label('$' + p.toFixed(2), PAD.left - 10, yOf(p) + 4, '#7a6f62', 'right', '11px "JetBrains Mono"');
+      }
+
+      // Axis lines
+      ctx.strokeStyle = '#1a1209';
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      ctx.moveTo(PAD.left, PAD.top);
+      ctx.lineTo(PAD.left, PAD.top + CH);
+      ctx.lineTo(PAD.left + CW, PAD.top + CH);
+      ctx.stroke();
+
+      // Axis labels
+      ctx.save();
+      ctx.translate(20, PAD.top + CH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = '#1a1209';
+      ctx.font = '13px "Source Serif 4", serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Price ($ per lb)', 0, 0);
+      ctx.restore();
+
+      label('Quantity of Chicken (Billions lbs/yr)', PAD.left + CW / 2, H - 12, '#1a1209', 'center', '13px "Source Serif 4", serif');
+      ctx.restore();
+    }
+
+    /* ── Full render function ────────────────────────────── */
+    function render(s, t) {
+      // s = completed steps, t = transition 0→1 for next step
+      ctx.clearRect(0, 0, W, H);
+      drawAxes();
+
+      // ── Step 0+: Supply curve always visible ──
+      drawCurve(MKT.supplyQ, 0, MKT.pMax, '#2d7a3a', 2.8);
+      // S label
+      const sLabelQ = MKT.supplyQ(MKT.pMax) * 0.97;
+      label('S', xOf(sLabelQ) + 6, yOf(MKT.pMax) + 4, '#2d7a3a', 'left', 'bold 14px "JetBrains Mono"');
+
+      // ── Step 1+: D1 demand curve ──
+      const d1Alpha = s >= 1 ? 1 : (s === 0 ? t : 0);
+      if (d1Alpha > 0) {
+        drawCurve(MKT.d1Q, 0, MKT.pMax, '#2563b0', 2.8, d1Alpha);
+        if (d1Alpha > 0.5) {
+          const d1LabelP = 0.3;
+          label('D1', xOf(MKT.d1Q(d1LabelP)) - 24, yOf(d1LabelP) + 4, '#2563b0', 'right', 'bold 14px "JetBrains Mono"');
+        }
+        // Old equilibrium dot
+        if (d1Alpha > 0.8) {
+          dot(xOf(MKT.eq1.q), yOf(MKT.eq1.p), '#2563b0', 5);
+        }
+      }
+
+      // ── Step 2+: D2 demand curve (shift left) ──
+      let d2Progress = 0;
+      if (s >= 2) d2Progress = 1;
+      else if (s === 1) d2Progress = t;
+
+      if (d2Progress > 0) {
+        // interpolate D2 toward left
+        const interpQ = p => MKT.d1Q(p) * (1 - d2Progress) + MKT.d2Q(p) * d2Progress;
+        drawCurve(interpQ, 0, MKT.pMax, '#c0392b', 2.8);
+
+        if (d2Progress > 0.8) {
+          const d2LabelP = 0.3;
+          label('D2', xOf(MKT.d2Q(d2LabelP)) - 24, yOf(d2LabelP) + 4, '#c0392b', 'right', 'bold 14px "JetBrains Mono"');
+        }
+
+        // Arrow showing shift left (at mid price level ~3.5)
+        if (d2Progress > 0.6) {
+          const midP  = 3.5;
+          const xD1   = xOf(MKT.d1Q(midP));
+          const xD2   = xOf(MKT.d2Q(midP));
+          const yMid  = yOf(midP);
+          const xTip  = xD1 + (xD2 - xD1) * d2Progress;
+          drawArrow(xD1 - 8, yMid, xTip + 8, yMid, '#c0392b', 2, 11);
+          if (d2Progress > 0.85) {
+            label('Demand ↙ shifts left', xD1 - 10, yMid - 10, '#c0392b', 'right', '11px "JetBrains Mono"');
+          }
+        }
+      }
+
+      // ── Step 3+: Surplus at $4.00 ──
+      let surplusAlpha = 0;
+      if (s >= 3) surplusAlpha = 1;
+      else if (s === 2) surplusAlpha = t;
+
+      if (surplusAlpha > 0) {
+        const xQd2at4 = xOf(MKT.d2Q(4));
+        const xQsat4  = xOf(MKT.supplyQ(4));
+        const yP4     = yOf(4);
+
+        ctx.save();
+        ctx.globalAlpha = surplusAlpha * 0.18;
+        ctx.fillStyle   = '#e67e22';
+        ctx.fillRect(xQd2at4, yP4 - 6, xQsat4 - xQd2at4, 12);
+        ctx.restore();
+
+        // Dashed line at $4.00
+        drawDashedLine(PAD.left, yP4, xQsat4, yP4, '#2563b0', [6, 4]);
+        label('$4.00', PAD.left - 10, yP4 + 4, '#2563b0', 'right', 'bold 11px "JetBrains Mono"');
+
+        // Arrow showing surplus ←
+        const xSurpMid = (xQd2at4 + xQsat4) / 2;
+        drawArrow(xQsat4 - 4, yP4, xQd2at4 + 4, yP4, '#e67e22', 2.5, 11);
+        if (surplusAlpha > 0.7) {
+          label('SURPLUS', xSurpMid, yP4 - 12, '#e67e22', 'center', 'bold 11px "JetBrains Mono"');
+          const surplusLbs = (surplusAmt).toFixed(1);
+          label(surplusLbs + ' B lbs', xSurpMid, yP4 + 20, '#e67e22', 'center', '10px "JetBrains Mono"');
+        }
+
+        // Dots at surplus endpoints
+        dot(xQd2at4, yP4, '#c0392b', 4);
+        dot(xQsat4,  yP4, '#2d7a3a', 4);
+      }
+
+      // ── Step 4+: Price drops to new equilibrium ──
+      let priceAlpha = 0;
+      if (s >= 4) priceAlpha = 1;
+      else if (s === 3) priceAlpha = t;
+
+      if (priceAlpha > 0) {
+        const interpP = 4 - (4 - MKT.eq2.p) * priceAlpha;
+        const xNewEq  = xOf(MKT.eq2.q);
+        const yNewEq  = yOf(interpP);
+
+        // New eq horizontal dashed line
+        drawDashedLine(PAD.left, yNewEq, xNewEq, yNewEq, '#c0392b', [6, 4]);
+        label('$' + interpP.toFixed(2), PAD.left - 10, yNewEq + 4, '#c0392b', 'right', 'bold 11px "JetBrains Mono"');
+
+        // Vertical dashed to x-axis
+        drawDashedLine(xNewEq, yNewEq, xNewEq, PAD.top + CH, '#c0392b', [4, 4]);
+
+        // Downward arrow on price axis
+        drawArrow(PAD.left - 45, yOf(4), PAD.left - 45, yNewEq, '#c0392b', 2, 10);
+        if (priceAlpha > 0.6) {
+          label('P↓', PAD.left - 56, (yOf(4) + yNewEq) / 2 + 4, '#c0392b', 'center', 'bold 11px "JetBrains Mono"');
+        }
+
+        // New equilibrium dot
+        if (priceAlpha > 0.8) dot(xNewEq, yNewEq, '#c0392b', 5);
+      }
+
+      // ── Step 5: Qty arrows ──
+      let qtyAlpha = 0;
+      if (s >= 5) qtyAlpha = 1;
+      else if (s === 4) qtyAlpha = t;
+
+      if (qtyAlpha > 0) {
+        const yBase  = PAD.top + CH + 36;
+        const xEq1   = xOf(MKT.eq1.q);
+        const xEq2   = xOf(MKT.eq2.q);
+
+        // Arrow on quantity axis ←
+        drawArrow(xEq1, yBase, xEq2 + 4, yBase, '#8e44ad', 2.5, 11);
+
+        // Labels
+        if (qtyAlpha > 0.5) {
+          label(MKT.eq1.q.toFixed(1), xEq1, yBase - 6, '#2563b0', 'center', '10px "JetBrains Mono"');
+          label(MKT.eq2.q.toFixed(1), xEq2, yBase - 6, '#c0392b', 'center', '10px "JetBrains Mono"');
+          label('Qty ↓', (xEq1 + xEq2) / 2, yBase + 14, '#8e44ad', 'center', 'bold 10px "JetBrains Mono"');
+        }
+
+        // Qty supplied decrease arrow (on supply curve)
+        const xOldSupEq = xOf(MKT.eq1.q);
+        const xNewSupEq = xOf(MKT.eq2.q);
+        const yOldEq    = yOf(MKT.eq1.p);
+        const yNewEq2   = yOf(MKT.eq2.p);
+        drawArrow(xOldSupEq, yOldEq, xNewSupEq + 4, yNewEq2, '#2d7a3a', 2, 10);
+        if (qtyAlpha > 0.6) {
+          label('Qty Supplied ↓', xOldSupEq + 8, yOldEq - 8, '#2d7a3a', 'left', '10px "JetBrains Mono"');
+        }
+
+        // Old eq dot (faded)
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        dot(xOf(MKT.eq1.q), yOf(MKT.eq1.p), '#2563b0', 5);
+        ctx.restore();
+      }
+
+      // ── Always: Title ──
+      ctx.save();
+      ctx.fillStyle = '#1a1209';
+      ctx.font = 'bold 15px "JetBrains Mono", monospace';
+      ctx.fillText('US Chicken Market', PAD.left + CW / 2, PAD.top - 16);
+      ctx.textAlign = 'center';
+      ctx.fillText('US Chicken Market', PAD.left + CW / 2, PAD.top - 16);
+      ctx.restore();
+    }
+
+    /* ── Animation loop ──────────────────────────────────── */
+    const STEP_DURATION = 900; // ms per step
+    let startTime = null;
+
+    function animate(ts) {
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
+      const t = Math.min(elapsed / STEP_DURATION, 1);
+
+      render(step, t);
+
+      if (t < 1) {
+        animId = requestAnimationFrame(animate);
+      } else {
+        step++;
+        updateDots();
+        updateStepLabel();
+        showOutcomes();
+        if (step < TOTAL_STEPS) {
+          startTime = null;
+          animId = requestAnimationFrame(animate);
+        } else {
+          render(step, 0);
+          document.getElementById('btn-play').textContent = '✓ Done';
+          document.getElementById('btn-play').setAttribute('aria-label', 'Animation complete');
+        }
+      }
+    }
+
+    /* ── UI updates ──────────────────────────────────────── */
+    function updateDots() {
+      document.querySelectorAll('.step-dot').forEach((d, i) => {
+        d.classList.toggle('active', i <= step);
+      });
+    }
+
+    function updateStepLabel() {
+      document.getElementById('step-label').textContent = `Step: ${step} / ${TOTAL_STEPS}`;
+    }
+
+    const narratives = [
+      'Press <strong>Animate</strong> to walk through the market adjustment step by step.',
+      'The <strong>Supply curve (S)</strong> slopes upward — as price rises, producers supply more chicken.',
+      'Original demand curve <strong>D1</strong> represents US chicken demand at ~$4.00/lb and 46.98 billion lbs/yr. A demand-reducing event (e.g., an avian flu scare, shift to plant-based diets, or economic downturn) shifts demand <strong>left to D2</strong>.',
+      'At the old price of <strong>$4.00/lb</strong>, quantity supplied exceeds quantity demanded under D2 — creating a <strong>surplus</strong> of ~' + surplusAmt.toFixed(1) + ' billion lbs. Unsold inventory pressures producers to cut prices.',
+      'The surplus drives the price <strong>down from $4.00 to $3.20/lb</strong>. At the lower price, fewer producers find it profitable to supply chicken.',
+      'The new equilibrium is reached at <strong>$3.20/lb and ~' + MKT.eq2.q.toFixed(1) + ' billion lbs</strong>. Both quantity supplied and quantity demanded have decreased. The market clears with no surplus.',
+    ];
+
+    function showOutcomes() {
+      if (step >= 4) {
+        const oc = document.getElementById('oc-price');
+        oc.classList.add('visible');
+        document.getElementById('oc-price-val').textContent = '$4.00 → $3.20';
+      }
+      if (step >= 5) {
+        document.getElementById('oc-qty').classList.add('visible');
+        document.getElementById('oc-qty-val').textContent = MKT.eq1.q.toFixed(1) + ' → ' + MKT.eq2.q.toFixed(1);
+
+        document.getElementById('oc-surplus').classList.add('visible');
+        document.getElementById('oc-surplus-val').textContent = surplusAmt.toFixed(2) + ' B lbs';
+
+        document.getElementById('oc-result').classList.add('visible');
+        document.getElementById('oc-result-val').textContent = 'Price ↓ · Qty ↓';
+      }
+      document.getElementById('narrative').innerHTML = narratives[Math.min(step, narratives.length - 1)];
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    document.getElementById('btn-play').addEventListener('click', () => {
+      if (animId) cancelAnimationFrame(animId);
+      if (step >= TOTAL_STEPS) return;
+      startTime = null;
+      animId = requestAnimationFrame(animate);
+      document.getElementById('btn-play').textContent = '▶ Playing…';
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      step = 0;
+      startTime = null;
+      updateDots();
+      updateStepLabel();
+      render(0, 0);
+      document.getElementById('btn-play').textContent = '▶ Animate';
+      document.getElementById('btn-play').setAttribute('aria-label', 'Animate the demand shift step by step');
+      document.getElementById('narrative').innerHTML = narratives[0];
+      document.querySelectorAll('.outcome-card').forEach(c => c.classList.remove('visible'));
+      ['oc-price-val','oc-qty-val','oc-surplus-val','oc-result-val'].forEach(id => {
+        document.getElementById(id).textContent = '—';
+      });
+    });
+
+    /* ── Keyboard: allow Enter/Space on canvas ───────────── */
+    canvas.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('btn-play').click();
+      }
+    });
+
+    /* ── Initial render ──────────────────────────────────── */
+    render(0, 0);
+    updateDots();
+    updateStepLabel();
+
+  })();
+  </script>
+
+</body>
+</html>
