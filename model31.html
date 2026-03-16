@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milk Market Supply & Demand Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --demand: #dc2626;
+            --supply-s1: #7c3aed;
+            --supply-s2: #059669;
+            --equilibrium: #1e40af;
+            --surplus: #fbbf24;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e0e7ff 100%);
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #ffffff, #fafbfc);
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Controls */
+        .control-panel {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8f1ff 100%);
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid rgba(30, 64, 175, 0.15);
+            margin-bottom: 25px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .slider-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--supply-s2);
+            font-family: 'Courier New', monospace;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(to right, var(--supply-s1), var(--primary), var(--supply-s2));
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(30, 64, 175, 0.5);
+            border: 3px solid white;
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover,
+        input[type="range"]::-webkit-slider-thumb:focus {
+            transform: scale(1.25);
+            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.7);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(30, 64, 175, 0.5);
+            border: 3px solid white;
+            transition: all 0.2s ease;
+        }
+
+        /* Status Box */
+        .status-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            border-left: 5px solid var(--surplus);
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .status-title {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .status-message {
+            color: #78350f;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric-box:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.15);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .metric-box.e1 {
+            border-left: 4px solid var(--supply-s1);
+        }
+
+        .metric-box.e2 {
+            border-left: 4px solid var(--supply-s2);
+        }
+
+        /* Process Flow */
+        .process-flow {
+            background: linear-gradient(135deg, #f8fafc 0%, #f0f4f8 100%);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .flow-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .flow-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .flow-item {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border-left: 4px solid var(--border);
+            font-size: 0.9rem;
+            color: #1e293b;
+            transition: all 0.3s ease;
+        }
+
+        .flow-item.active {
+            background: var(--primary);
+            color: white;
+            border-left-color: var(--primary);
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
+        }
+
+        .flow-item::before {
+            content: '→ ';
+            font-weight: 700;
+        }
+
+        /* Legend */
+        .legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .legend-line.demand {
+            background: var(--demand);
+        }
+
+        .legend-line.s1 {
+            background: var(--supply-s1);
+        }
+
+        .legend-line.s2 {
+            background: var(--supply-s2);
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .reset-button {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .reset-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Info Box */
+        .info-box {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f4f8 100%);
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #1e293b;
+            line-height: 1.6;
+            border: 1px solid rgba(30, 64, 175, 0.1);
+        }
+
+        .info-box strong {
+            color: var(--primary);
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        @media (prefers-contrast: more) {
+            body {
+                background: #ffffff;
+            }
+            .card {
+                border: 2px solid #000000;
+            }
+        }
+
+        input[type="range"]:focus-visible,
+        button:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #64748b;
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Milk Market Supply Shift Analysis</h1>
+            <p class="subtitle">Interactive visualization of supply curve shift and market equilibrium adjustment</p>
+        </header>
+
+        <div class="main-layout">
+            <!-- Left: Chart -->
+            <div class="card">
+                <h2>Supply & Demand Graph</h2>
+                <div class="chart-container">
+                    <svg viewBox="0 0 600 480" preserveAspectRatio="xMidYMid meet">
+                        <!-- Grid -->
+                        <defs>
+                            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f0f0f0" stroke-width="0.5"/>
+                            </pattern>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                <polygon points="0 0, 10 3, 0 6" fill="#1e293b" />
+                            </marker>
+                        </defs>
+                        <rect width="600" height="480" fill="url(#grid)" />
+
+                        <!-- Axes -->
+                        <line x1="80" y1="400" x2="550" y2="400" stroke="#1e293b" stroke-width="3" marker-end="url(#arrowhead)"/>
+                        <line x1="80" y1="400" x2="80" y2="40" stroke="#1e293b" stroke-width="3" marker-end="url(#arrowhead)"/>
+
+                        <!-- Axis Labels -->
+                        <text x="560" y="425" font-size="14" font-weight="600" fill="#1e293b">Quantity (Billions)</text>
+                        <text x="25" y="220" font-size="14" font-weight="600" fill="#1e293b" transform="rotate(-90 25 220)">Price ($)</text>
+
+                        <!-- Axis Ticks and Values -->
+                        <g font-size="11" fill="#64748b" text-anchor="middle">
+                            <!-- X-axis labels -->
+                            <text x="130" y="420">10</text>
+                            <line x1="130" y1="398" x2="130" y2="403" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="200" y="420">20</text>
+                            <line x1="200" y1="398" x2="200" y2="403" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="270" y="420">26.4</text>
+                            <line x1="270" y1="398" x2="270" y2="403" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="340" y="420">40</text>
+                            <line x1="340" y1="398" x2="340" y2="403" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="410" y="420">50</text>
+                            <line x1="410" y1="398" x2="410" y2="403" stroke="#1e293b" stroke-width="2"/>
+
+                            <!-- Y-axis labels -->
+                            <text x="70" y="405" text-anchor="end">$0</text>
+                            <line x1="75" y1="400" x2="80" y2="400" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="70" y="310" text-anchor="end">$1</text>
+                            <line x1="75" y1="305" x2="80" y2="305" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="70" y="220" text-anchor="end">$2</text>
+                            <line x1="75" y1="215" x2="80" y2="215" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="70" y="130" text-anchor="end">$3</text>
+                            <line x1="75" y1="125" x2="80" y2="125" stroke="#1e293b" stroke-width="2"/>
+                            
+                            <text x="70" y="40" text-anchor="end">$4</text>
+                            <line x1="75" y1="35" x2="80" y2="35" stroke="#1e293b" stroke-width="2"/>
+                        </g>
+
+                        <!-- Curves Container -->
+                        <g id="curves">
+                            <!-- Demand Curve (always visible) -->
+                            <polyline id="demandCurve"
+                                points="80,50 130,95 180,140 230,180 270,215 320,260 370,300 420,340 470,375 520,400"
+                                fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linejoin="round"/>
+
+                            <!-- Supply S1 (Original - dashed, straight line) -->
+                            <polyline id="supplyCurveS1"
+                                points="80,400 490,50"
+                                fill="none" stroke="#7c3aed" stroke-width="3" stroke-dasharray="8,4" 
+                                opacity="0.7" stroke-linejoin="round"/>
+
+                            <!-- Shifted Supply curve (solid, straight line) -->
+                            <polyline id="supplyCurveS2"
+                                points="80,400 490,50"
+                                fill="none" stroke="#059669" stroke-width="3.5" opacity="1" stroke-linejoin="round"/>
+
+                            <!-- Surplus Shading -->
+                            <polygon id="surplusArea" fill="#fbbf24" opacity="0" points=""/>
+
+                            <!-- E1 - Initial Equilibrium -->
+                            <g id="e1Group" opacity="1">
+                                <circle cx="270" cy="215" r="7" fill="#1e40af" stroke="white" stroke-width="3"/>
+                                <!-- E1 Label -->
+                                <text x="290" y="205" font-size="12" font-weight="700" fill="#1e40af">E1</text>
+                                <!-- E1 Guidelines (dashed) -->
+                                <line x1="270" y1="215" x2="270" y2="400" stroke="#1e40af" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
+                                <line x1="80" y1="215" x2="270" y2="215" stroke="#1e40af" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
+                            </g>
+
+                            <!-- E2 - New Equilibrium (appears on shift) -->
+                            <g id="e2Group" opacity="0">
+                                <circle cx="310" cy="185" r="7" fill="#059669" stroke="white" stroke-width="3"/>
+                                <!-- E2 Label -->
+                                <text x="320" y="175" font-size="12" font-weight="700" fill="#059669">E2</text>
+                                <!-- E2 Guidelines (dashed) -->
+                                <line x1="310" y1="185" x2="310" y2="400" stroke="#059669" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
+                                <line x1="80" y1="185" x2="310" y2="185" stroke="#059669" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
+                            </g>
+
+                            <!-- Curve Labels -->
+                            <text id="demandLabel" x="500" y="70" font-size="13" font-weight="700" fill="#dc2626">D</text>
+                            <text id="s1Label" x="500" y="100" font-size="13" font-weight="700" fill="#7c3aed" opacity="0.7">S1</text>
+                            <text id="s2Label" x="500" y="130" font-size="13" font-weight="700" fill="#059669">S2</text>
+                            <text id="surplusLabel" x="320" y="300" font-size="12" font-weight="600" fill="#b45309" opacity="0">Surplus</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-line demand"></div>
+                        <span><strong>D</strong> - Demand</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line s1"></div>
+                        <span><strong>S1</strong> - Original Supply</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line s2"></div>
+                        <span><strong>S2</strong> - Shifted Supply</span>
+                    </div>
+                    <div class="legend-item">
+                        <span>🔵 <strong>E1, E2</strong> - Equilibrium Points</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Controls -->
+            <div class="card">
+                <h2>Market Analysis</h2>
+
+                <div class="control-panel">
+                    <div class="control-group">
+                        <div class="control-label">
+                            <label for="supplyShift">Supply Increase</label>
+                            <div class="slider-value">
+                                <span id="shiftValue">0</span>%
+                            </div>
+                        </div>
+                        <input 
+                            type="range" 
+                            id="supplyShift" 
+                            min="0" 
+                            max="50" 
+                            value="0"
+                            aria-label="Supply shift percentage from 0 to 50 percent"
+                            aria-describedby="shiftHelp"
+                        >
+                        <p id="shiftHelp" class="sr-only">Drag the slider right to shift the supply curve, representing an increase in market supply for milk.</p>
+                    </div>
+                </div>
+
+                <div class="status-box" id="statusBox">
+                    <div class="status-title">📊 Market Status</div>
+                    <div class="status-message" id="statusMessage">
+                        Initial equilibrium: Price $2.95/gal, Quantity 26.4B gallons
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-box e1">
+                        <div class="metric-label">E1 Price</div>
+                        <div class="metric-value">$<span id="e1Price">2.95</span></div>
+                    </div>
+                    <div class="metric-box e1">
+                        <div class="metric-label">E1 Quantity</div>
+                        <div class="metric-value"><span id="e1Qty">26.4</span>B</div>
+                    </div>
+                    <div class="metric-box e2">
+                        <div class="metric-label">E2 Price</div>
+                        <div class="metric-value">$<span id="e2Price">2.95</span></div>
+                    </div>
+                    <div class="metric-box e2">
+                        <div class="metric-label">E2 Quantity</div>
+                        <div class="metric-value"><span id="e2Qty">26.4</span>B</div>
+                    </div>
+                </div>
+
+                <div class="process-flow">
+                    <div class="flow-title">⚙️ Market Adjustment Process</div>
+                    <div class="flow-list">
+                        <div class="flow-item" id="flow1">Supply shifts rightward (S1 → S2)</div>
+                        <div class="flow-item" id="flow2">Surplus created at E1 price</div>
+                        <div class="flow-item" id="flow3">Price falls toward new level</div>
+                        <div class="flow-item" id="flow4">Quantity demanded rises, Qs falls</div>
+                        <div class="flow-item" id="flow5">New equilibrium reached at E2</div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="reset-button" onclick="resetModel()" aria-label="Reset model to initial conditions">
+                        ↺ Reset
+                    </button>
+                </div>
+
+                <div class="info-box">
+                    <strong>📚 Concept:</strong> When milk supply increases (S1 → S2), at the original price ($2.95) there's excess supply (surplus). Farmers compete by lowering prices, moving down the demand curve. Lower prices stimulate quantity demanded while reducing quantity suppliers are willing to provide. The market clears at the new E2 equilibrium.
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>How to use:</strong> Drag the "Supply Increase" slider right. Watch S1 shift to S2, the surplus area appear, and the equilibrium move from E1 to E2.</p>
+            <p style="margin-top: 10px;">All data simplified for educational purposes. Based on microeconomic principles of supply, demand, and market equilibrium.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Model Constants
+        const MODEL = {
+            initialPrice: 2.95,
+            initialQuantity: 26.4,
+            maxShift: 50
+        };
+
+        // DOM Elements
+        const slider = document.getElementById('supplyShift');
+        const shiftValue = document.getElementById('shiftValue');
+        const statusBox = document.getElementById('statusBox');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // SVG Elements
+        const supplyCurveS1 = document.getElementById('supplyCurveS1');
+        const supplyCurveS2 = document.getElementById('supplyCurveS2');
+        const surplusArea = document.getElementById('surplusArea');
+        const surplusLabel = document.getElementById('surplusLabel');
+        const e1Group = document.getElementById('e1Group');
+        const e2Group = document.getElementById('e2Group');
+
+        // Metrics
+        const e1Price = document.getElementById('e1Price');
+        const e1Qty = document.getElementById('e1Qty');
+        const e2Price = document.getElementById('e2Price');
+        const e2Qty = document.getElementById('e2Qty');
+
+        // Calculate new equilibrium based on supply shift
+        function calculateEquilibrium(shiftPercent) {
+            // Linear adjustment: as supply increases, price falls
+            // E1: $2.95 at 26.4B
+            // Maximum shift: 50% → price approaches $1.00, quantity approaches 45B
+            
+            const shiftFactor = shiftPercent / 100;
+            const priceReduction = shiftPercent * 0.039; // ~$1.95 at 50% shift
+            const newPrice = Math.max(0.80, MODEL.initialPrice - priceReduction);
+            
+            // Demand curve: Qd = 60 - 10P (approximately)
+            const newQuantity = 60 - (10 * newPrice);
+            
+            return {
+                price: Math.round(newPrice * 100) / 100,
+                quantity: Math.round(newQuantity * 10) / 10,
+                surplus: shiftFactor > 0 ? Math.round((shiftPercent * 0.8) * 10) / 10 : 0
+            };
+        }
+
+        // Update supply curve S2 points dynamically
+        function updateSupplyCurve(shiftPercent) {
+            // S1 (original) goes from bottom-left to top-right: (80, 400) to (490, 50)
+            // This is a straight line representing the original supply curve
+            // S2 shifts right while maintaining the same slope
+            
+            // Base S1 coordinates
+            const s1StartX = 80;
+            const s1StartY = 400; // Bottom of y-axis (price = $0)
+            const s1EndX = 490;
+            const s1EndY = 50;   // Top area (higher price)
+            
+            // S2 is shifted right
+            // Max shift of 50% = 100 pixels to the right
+            const shiftPixels = (shiftPercent / MODEL.maxShift) * 100;
+            
+            // S2 endpoints - same slope, shifted right
+            const s2StartX = s1StartX + shiftPixels;
+            const s2StartY = s1StartY; // Same y (price = $0, at bottom)
+            const s2EndX = s1EndX + shiftPixels;
+            const s2EndY = s1EndY;     // Same y (maintains slope)
+            
+            // S2 is a straight line from bottom-left to top-right
+            supplyCurveS2.setAttribute('points', `${s2StartX},${s2StartY} ${s2EndX},${s2EndY}`);
+        }
+
+        // Curve parameters for straight lines
+        const curves = {
+            // Demand: P = 4 - 0.0667*Q (goes from (0, $4) to (60, $0))
+            demand: {
+                interceptPrice: 4,
+                slope: -0.0667
+            },
+            // Supply S1 (original): P = 0 + 0.0857*Q (goes from (0, $0) to (58, $5))
+            // Actually: (80, 400) to (490, 50) in SVG, which is (0, $0) to (58.3, $5)
+            supplyS1: {
+                interceptPrice: 0,
+                slope: 0.0857,
+                interceptQty: 0
+            }
+        };
+
+        // Calculate price on demand curve
+        function demandPrice(quantity) {
+            return Math.max(0, curves.demand.interceptPrice + curves.demand.slope * quantity);
+        }
+
+        // Calculate price on S2 curve (shifted supply)
+        function supplyS2Price(quantity, shiftPercent) {
+            // S2 shifts right, meaning the entire curve moves right
+            // This is equivalent to: original supply provides more at each price
+            // Or: at each quantity, the price is lower on S2 than S1
+            
+            // Shift amount in quantities: 50% shift = ~10B gallons more at each price
+            const shiftQty = (shiftPercent / 100) * 20;
+            
+            // S2 curve: same slope as S1, but shifted right
+            // If S1 is: P = 0.0857*Q
+            // Then S2 is: P = 0.0857*(Q - shiftQty) = 0.0857*Q - 0.0857*shiftQty
+            
+            const price = curves.supplyS1.slope * (quantity - shiftQty);
+            return Math.max(0, price);
+        }
+
+        // Find exact intersection of S2 and Demand curve
+        function findE2Intersection(shiftPercent) {
+            // Solve: demandPrice(Q) = supplyS2Price(Q)
+            // 4 - 0.0667*Q = 0.0857*(Q - shift)
+            // 4 - 0.0667*Q = 0.0857*Q - 0.0857*shift
+            // 4 + 0.0857*shift = 0.0857*Q + 0.0667*Q
+            // 4 + 0.0857*shift = 0.1524*Q
+            // Q = (4 + 0.0857*shift) / 0.1524
+            
+            const shiftQty = (shiftPercent / 100) * 20;
+            const intersectionQty = (4 + (0.0857 * shiftQty)) / (0.0857 + 0.0667);
+            const intersectionPrice = demandPrice(intersectionQty);
+            
+            return {
+                quantity: Math.max(0, intersectionQty),
+                price: Math.max(0, intersectionPrice)
+            };
+        }
+
+        // Convert quantity and price to SVG coordinates
+        function coordsToSVG(quantity, price) {
+            // The chart maps:
+            // Quantity: 0-60B to x: 80-550 (width of 470px)
+            // Price: $0-$4 to y: 400-50 (height of 350px, inverted because y increases downward)
+            
+            const x = 80 + (quantity / 60) * (550 - 80);
+            const y = 400 - (price / 4) * (400 - 50);
+            
+            return {x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10};
+        }
+
+        // Update equilibrium point positions
+        function updateEquilibriumPoints(equilibrium, shiftPercent) {
+            if (shiftPercent > 0) {
+                // E1 stays at original position (270, 215)
+                e1Group.style.opacity = '0.6';
+                
+                // E2 positioned at intersection of S2 and D
+                const e2Eq = findE2Intersection(shiftPercent);
+                const e2Coords = coordsToSVG(e2Eq.quantity, e2Eq.price);
+                
+                e2Group.style.opacity = '1';
+                e2Group.querySelector('circle').setAttribute('cx', e2Coords.x);
+                e2Group.querySelector('circle').setAttribute('cy', e2Coords.y);
+                e2Group.querySelector('text').setAttribute('x', e2Coords.x + 20);
+                e2Group.querySelector('text').setAttribute('y', e2Coords.y - 10);
+                
+                // Update guidelines
+                const guidelines = e2Group.querySelectorAll('line');
+                guidelines[0].setAttribute('x1', e2Coords.x);
+                guidelines[0].setAttribute('x2', e2Coords.x);
+                guidelines[0].setAttribute('y2', e2Coords.y);
+                guidelines[1].setAttribute('x2', e2Coords.x);
+                guidelines[1].setAttribute('y1', e2Coords.y);
+                guidelines[1].setAttribute('y2', e2Coords.y);
+                
+                // Update metrics to match E2
+                e2Price.textContent = e2Eq.price.toFixed(2);
+                e2Qty.textContent = e2Eq.quantity.toFixed(1);
+                
+                // Show surplus label
+                surplusLabel.style.opacity = '0.7';
+                surplusArea.style.opacity = '0.2';
+            } else {
+                e1Group.style.opacity = '1';
+                e2Group.style.opacity = '0';
+                surplusLabel.style.opacity = '0';
+                surplusArea.style.opacity = '0';
+                
+                // Reset E2 metrics to E1
+                e2Price.textContent = MODEL.initialPrice.toFixed(2);
+                e2Qty.textContent = MODEL.initialQuantity.toFixed(1);
+            }
+        }
+
+        // Update all displays
+        function updateModel(shiftPercent) {
+            shiftValue.textContent = shiftPercent;
+            
+            const equilibrium = calculateEquilibrium(shiftPercent);
+            
+            // Update metrics
+            e2Price.textContent = equilibrium.price.toFixed(2);
+            e2Qty.textContent = equilibrium.quantity.toFixed(1);
+            
+            // Update curves and points
+            updateSupplyCurve(shiftPercent);
+            updateEquilibriumPoints(equilibrium, shiftPercent);
+            
+            // Update status
+            if (shiftPercent === 0) {
+                statusMessage.innerHTML = `Initial equilibrium at <strong>E1</strong>: Price <strong>$${MODEL.initialPrice}</strong>/gal, Quantity <strong>${MODEL.initialQuantity}B</strong> gallons`;
+                // Deactivate flow steps
+                document.querySelectorAll('.flow-item').forEach(item => item.classList.remove('active'));
+            } else {
+                statusMessage.innerHTML = `
+                    <strong>Supply increased by ${shiftPercent}%</strong><br>
+                    • Surplus of ~${equilibrium.surplus}B gal created at E1 price<br>
+                    • Price falls to $${equilibrium.price}/gal<br>
+                    • New equilibrium at E2: $${equilibrium.price}/gal, ${equilibrium.quantity}B gallons
+                `;
+                // Activate flow steps
+                document.querySelectorAll('.flow-item').forEach((item, index) => {
+                    if (index < 5) item.classList.add('active');
+                });
+            }
+        }
+
+        // Reset model
+        function resetModel() {
+            slider.value = 0;
+            updateModel(0);
+        }
+
+        // Event listener
+        slider.addEventListener('input', (e) => {
+            updateModel(parseInt(e.target.value));
+        });
+
+        // Initialize
+        updateModel(0);
+    </script>
+</body>
+</html>
+
