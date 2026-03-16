@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Student Supply and Demand Models - Principles of Microeconomics">
+    <title>Student Supply & Demand Models - Microeconomics ECO112</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f7;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* ── BANNER ── */
+        .banner {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 40px;
+            max-height: 220px;
+        }
+
+        .banner img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            object-position: bottom;
+            max-height: 220px;
+        }
+
+        /* ── HEADER BOX ── */
+        .header-box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #d2d2d7;
+            text-align: center;
+        }
+
+        .header-box h1 {
+            color: #1d1d1f;
+            font-size: 3em;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .header-box p {
+            color: #6e6e73;
+            font-size: 1.15em;
+            line-height: 1.6;
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        /* ── SECTION CARDS ── */
+        .section-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #d2d2d7;
+        }
+
+        .section-card h2 {
+            color: #1d1d1f;
+            font-size: 1.8em;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin-bottom: 16px;
+        }
+
+        .section-card p {
+            color: #3d3d3f;
+            font-size: 1.05em;
+            line-height: 1.7;
+            margin-bottom: 14px;
+        }
+
+        .section-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ── ABOUT GRID ── */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 28px;
+        }
+
+        @media (max-width: 640px) {
+            .about-grid { grid-template-columns: 1fr; }
+        }
+
+        .about-tile {
+            background: #f5f5f7;
+            border-radius: 12px;
+            border: 1px solid #d2d2d7;
+            padding: 22px 20px;
+        }
+
+        .about-tile h3 {
+            color: #1d1d1f;
+            font-size: 1em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .about-tile p {
+            color: #6e6e73;
+            font-size: 0.95em;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+
+        /* ── CRITERIA LIST ── */
+        .criteria-list {
+            list-style: none;
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .criteria-list { grid-template-columns: 1fr; }
+        }
+
+        .criteria-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            background: #f5f5f7;
+            border: 1px solid #d2d2d7;
+            border-radius: 12px;
+            padding: 16px 18px;
+            font-size: 0.97em;
+            color: #3d3d3f;
+            line-height: 1.55;
+        }
+
+        .criteria-num {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            background: #0071e3;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.82em;
+            font-weight: 600;
+            margin-top: 1px;
+        }
+
+        /* ── DEMO SECTION ── */
+        .demo-intro {
+            color: #6e6e73;
+            font-size: 1.05em;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .model-frame-wrap {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #d2d2d7;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .model-frame-label {
+            background: #1d1d1f;
+            color: white;
+            padding: 14px 20px;
+            font-size: 0.88em;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .model-frame-label .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #30d158;
+            flex-shrink: 0;
+        }
+
+        .model-frame-wrap iframe {
+            width: 100%;
+            height: 840px;
+            border: none;
+            display: block;
+            background: white;
+        }
+
+        .model-frame-caption {
+            background: #f5f5f7;
+            border-top: 1px solid #d2d2d7;
+            padding: 14px 20px;
+            font-size: 0.9em;
+            color: #6e6e73;
+            line-height: 1.5;
+        }
+
+        /* ── CTA BLOCK ── */
+        .cta-block {
+            background: #1d1d1f;
+            border-radius: 16px;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 28px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        @media (max-width: 600px) {
+            .cta-block { flex-direction: column; text-align: center; }
+        }
+
+        .cta-text h3 {
+            color: white;
+            font-size: 1.5em;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin-bottom: 10px;
+        }
+
+        .cta-text p {
+            color: rgba(255,255,255,0.65);
+            font-size: 1em;
+            line-height: 1.6;
+            max-width: 420px;
+            margin-bottom: 0;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #0071e3;
+            color: white;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 1.05em;
+            padding: 14px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .cta-btn:hover {
+            background: #0077ed;
+        }
+
+        .cta-btn:focus {
+            outline: 3px solid #0071e3;
+            outline-offset: 2px;
+        }
+
+        .cta-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ── CONTACT BOX ── */
+        .contact-box {
+            background: white;
+            border-radius: 16px;
+            padding: 16px 32px;
+            margin: 30px 0 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #d2d2d7;
+            text-align: center;
+        }
+
+        .contact-box h3 {
+            display: inline;
+            color: #1d1d1f;
+            font-size: 1.05em;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .contact-box p {
+            display: inline;
+            color: #6e6e73;
+            font-size: 1.05em;
+            margin-right: 8px;
+        }
+
+        .contact-box a {
+            color: #0071e3;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.05em;
+        }
+
+        .contact-box a:hover {
+            text-decoration: underline;
+        }
+
+        .contact-box a:focus {
+            outline: 3px solid #0071e3;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .header-box h1 { font-size: 2.2em; }
+            .section-card { padding: 28px 24px; }
+            .cta-block { padding: 28px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- BANNER -->
+        <div class="banner">
+            <img src="banner.png" alt="Microeconomics ECO112 Course Banner - Thomas P. Andrews">
+        </div>
+
+        <!-- HEADER -->
+        <div class="header-box">
+            <h1>Student Supply &amp; Demand Models</h1>
+            <p>Interactive market simulations built by undergraduate students in Principles of Microeconomics using Anthropic's Claude.ai — designed to visualize how markets respond to supply and demand shocks.</p>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="section-card">
+            <h2>About This Project</h2>
+            <p>
+                Students enrolled in <strong>Principles of Microeconomics (ECO112)</strong> used
+                <a href="https://claude.ai" target="_blank" rel="noopener" style="color:#0071e3;font-weight:500;">Anthropic's Claude.ai</a>
+                to design and build interactive, browser-based supply and demand models. Working collaboratively
+                with a large language model, each student specified a real-world market and constructed a simulation
+                grounded in plausible economic values.
+            </p>
+            <p>
+                Rather than abstract curves, each model begins at a clearly defined equilibrium — a named
+                good or service with meaningful price and quantity units — before the student triggers a
+                market disruption using a slider control. The goal was to tell a coherent economic story:
+                from initial equilibrium, through a shock, to the adjustment process that restores market balance.
+            </p>
+
+            <div class="about-grid">
+                <div class="about-tile">
+                    <h3>🤖 AI-Assisted Construction</h3>
+                    <p>Models were built through iterative dialogue with Claude.ai. Students specified market conditions and refined the output to meet the assignment's economic and pedagogical standards.</p>
+                </div>
+                <div class="about-tile">
+                    <h3>📊 Interactive by Design</h3>
+                    <p>Each model features a slider that triggers a supply or demand shift in real time, revealing the resulting shortage or surplus and the path to a new equilibrium.</p>
+                </div>
+                <div class="about-tile">
+                    <h3>🎯 Grounded in Reality</h3>
+                    <p>Students anchored their models to real markets with realistic price and quantity levels, making the economic logic concrete and relatable.</p>
+                </div>
+                <div class="about-tile">
+                    <h3>🏆 Peer Evaluation</h3>
+                    <p>Completed models are evaluated through a head-to-head tournament — <em>Model Wars</em> — in which participants judge pairs of models on accuracy, clarity, and instructional quality.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRITERIA -->
+        <div class="section-card">
+            <h2>Model Requirements</h2>
+            <p>
+                To ensure consistency and pedagogical rigor, each model was required to demonstrate all
+                of the following features. These same criteria guide peer evaluation in Model Wars.
+            </p>
+
+            <ul class="criteria-list" aria-label="Model requirements">
+                <li>
+                    <span class="criteria-num" aria-hidden="true">1</span>
+                    <div><strong>A well-specified market</strong> — a named good or service with realistic equilibrium price and quantity values.</div>
+                </li>
+                <li>
+                    <span class="criteria-num" aria-hidden="true">2</span>
+                    <div><strong>An interactive slider</strong> — controls the magnitude of a supply or demand shift in real time.</div>
+                </li>
+                <li>
+                    <span class="criteria-num" aria-hidden="true">3</span>
+                    <div><strong>Shortage or surplus visualization</strong> — the gap between Q<sub>s</sub> and Q<sub>d</sub> at the original price is clearly shown.</div>
+                </li>
+                <li>
+                    <span class="criteria-num" aria-hidden="true">4</span>
+                    <div><strong>Market adjustment arrows</strong> — directional cues showing how price, Q<sub>d</sub>, and Q<sub>s</sub> move toward the new equilibrium.</div>
+                </li>
+                <li>
+                    <span class="criteria-num" aria-hidden="true">5</span>
+                    <div><strong>Labeled equilibria</strong> — both the original and new equilibrium points are identified on the graph.</div>
+                </li>
+                <li>
+                    <span class="criteria-num" aria-hidden="true">6</span>
+                    <div><strong>Market analysis summary</strong> — a text panel reporting the quantitative changes in price and quantity.</div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- SAMPLE MODEL -->
+        <div class="section-card">
+            <h2>Sample Model — Beef Market</h2>
+            <p class="demo-intro">
+                The model below is a representative example of the type of simulation students produced.
+                It depicts the <strong>U.S. beef market</strong> and shows what happens when consumer
+                demand increases — driven, for example, by rising incomes or changing dietary preferences.
+                Use the slider to shift the demand curve rightward, observe the resulting shortage at the
+                original price, and watch the market adjust to a new equilibrium.
+            </p>
+
+            <div class="model-frame-wrap">
+                <div class="model-frame-label">
+                    <span class="indicator" aria-hidden="true"></span>
+                    Live Interactive Model &nbsp;—&nbsp; Beef Market / Increase in Demand
+                </div>
+                <iframe
+                    src="beef_demand_shift__3_.html"
+                    title="Interactive beef market supply and demand model — increase in demand"
+                    loading="lazy"
+                    sandbox="allow-scripts allow-same-origin"
+                ></iframe>
+                <div class="model-frame-caption">
+                    Move the <strong>Demand Shift</strong> slider to the right to simulate an increase in demand. The graph displays the resulting shortage, market adjustment arrows, and new equilibrium.
+                </div>
+            </div>
+        </div>
+
+        <!-- MODEL WARS CTA -->
+        <div class="section-card">
+            <h2>Ready to Evaluate Student Models?</h2>
+            <p>
+                Head over to <strong>Model Wars</strong> — the peer evaluation platform where you will
+                assess ten pairs of student-submitted models. For each pair, choose the model that best
+                meets the assignment criteria: economic accuracy, clarity of the adjustment process,
+                and overall quality of the interactive experience. Your evaluations contribute directly
+                to the class rankings.
+            </p>
+
+            <div class="cta-block" style="margin-top: 28px;">
+                <div class="cta-text">
+                    <h3>Enter Model Wars</h3>
+                    <p>Ten head-to-head matchups await. Select the better model in each pair and help identify the strongest student work.</p>
+                </div>
+                <a
+                    href="https://tomecon-wcu.github.io/EconGrid/model_wars.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="cta-btn"
+                    aria-label="Open Model Wars evaluation site in a new tab"
+                >
+                    Go to Model Wars
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- CONTACT -->
+        <div class="contact-box">
+            <h3>Questions?</h3>
+            <p>If you have any questions or feedback about this project, please contact:</p>
+            <a href="/cdn-cgi/l/email-protection#0a7e6b646e786f7d794a7d697f7a6b246f6e7f"><span class="__cf_email__

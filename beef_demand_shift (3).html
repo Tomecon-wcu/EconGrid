@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Increase in Demand Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+        
+        .subtitle {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+        
+        .controls {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .slider-container {
+            margin: 20px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #d3d3d3;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        input[type="range"]:focus {
+            outline: 3px solid #74b9ff;
+            outline-offset: 2px;
+        }
+        
+        .slider-value {
+            text-align: center;
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:focus {
+            outline: 3px solid #74b9ff;
+            outline-offset: 2px;
+        }
+        
+        #canvas {
+            border: 2px solid #34495e;
+            display: block;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 3px;
+            margin-right: 10px;
+        }
+        
+        .info-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Increase in Demand Model</h1>
+        <p class="subtitle">Microeconomics Supply and Demand</p>
+        
+        <canvas id="canvas" width="800" height="600" role="img" aria-label="Supply and demand graph showing increase in demand"></canvas>
+        
+        <div class="controls">
+            <div class="slider-container">
+                <label for="demandSlider">Demand Shift Amount</label>
+                <input 
+                    type="range" 
+                    id="demandSlider" 
+                    min="0" 
+                    max="10" 
+                    value="0" 
+                    step="0.1"
+                    aria-label="Adjust demand shift amount"
+                    aria-valuemin="0"
+                    aria-valuemax="10"
+                    aria-valuenow="0"
+                    aria-valuetext="No shift">
+                <div class="slider-value" id="sliderValue">Demand Shift: 0 units</div>
+            </div>
+            <button id="resetBtn" aria-label="Reset to initial state">Reset</button>
+        </div>
+        
+        <div class="info-box">
+            <h3 style="margin-bottom: 10px;">Market Analysis</h3>
+            <p id="marketInfo">Initial Equilibrium: Price = $10.00, Quantity = 20 units</p>
+        </div>
+        
+        <div class="legend">
+            <h2 style="margin-bottom: 10px; font-size: 1.2em;">Legend</h2>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #000;"></div>
+                <span><strong>Supply Curve (S)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3498db;"></div>
+                <span><strong>Original Demand (D1)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2ecc71;"></div>
+                <span><strong>New Demand (D2)</strong> - appears when slider is moved</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9b59b6;"></div>
+                <span><strong>Shortage Arrow</strong> - Horizontal gap at original price</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e74c3c;"></div>
+                <span><strong>Increase Qs, Decrease Qd, and Price Arrows (Red)</strong> - Market adjustment movements</span>
+            </div>
+        </div>
+        
+        <div class="sr-only" role="status" aria-live="polite" id="announcements"></div>
+    </div>
+
+    <script>
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        var slider = document.getElementById('demandSlider');
+        var sliderValue = document.getElementById('sliderValue');
+        var resetBtn = document.getElementById('resetBtn');
+        var marketInfo = document.getElementById('marketInfo');
+        var announcements = document.getElementById('announcements');
+        
+        var initialPrice = 10;
+        var initialQuantity = 20;
+        var demandShift = 0;
+        
+        function priceToY(price) {
+            return 520 - (price * 16);
+        }
+        
+        function quantityToX(quantity) {
+            return 80 + (quantity * 16);
+        }
+        
+        function supplyPrice(q) {
+            return 0.5 * q;
+        }
+        
+        function demandPrice(q, shift) {
+            shift = shift || 0;
+            return 20 - 0.5 * (q - shift);
+        }
+        
+        function demandQuantity(p, shift) {
+            shift = shift || 0;
+            return 40 - 2 * p + shift;
+        }
+        
+        function drawAxes() {
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            
+            for (var q = 5; q <= 40; q += 5) {
+                var x = quantityToX(q);
+                ctx.beginPath();
+                ctx.moveTo(x, 40);
+                ctx.lineTo(x, 520);
+                ctx.stroke();
+            }
+            
+            for (var p = 5; p <= 30; p += 5) {
+                var y = priceToY(p);
+                ctx.beginPath();
+                ctx.moveTo(80, y);
+                ctx.lineTo(750, y);
+                ctx.stroke();
+            }
+            
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(80, 40);
+            ctx.lineTo(80, 520);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(60, 520);
+            ctx.lineTo(750, 520);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('Price ($)', 10, 30);
+            ctx.fillText('Quantity (billion lbs)', 300, 560);
+            
+            ctx.font = '14px Arial';
+            for (var p = 0; p <= 30; p += 5) {
+                var y = priceToY(p);
+                ctx.fillText('$' + p, 40, y + 5);
+                ctx.beginPath();
+                ctx.moveTo(75, y);
+                ctx.lineTo(85, y);
+                ctx.stroke();
+            }
+            
+            for (var q = 0; q <= 40; q += 5) {
+                var x = quantityToX(q);
+                ctx.fillText(q, x - 8, 540);
+                ctx.beginPath();
+                ctx.moveTo(x, 515);
+                ctx.lineTo(x, 525);
+                ctx.stroke();
+            }
+        }
+        
+        function drawSupplyCurve() {
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            var started = false;
+            var lastX = 0;
+            var lastY = 0;
+            for (var q = 0; q <= 40; q += 0.1) {
+                var p = supplyPrice(q);
+                if (p > 30) break;
+                var x = quantityToX(q);
+                var y = priceToY(p);
+                if (!started) {
+                    ctx.moveTo(x, y);
+                    started = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                lastX = x;
+                lastY = y;
+            }
+            ctx.stroke();
+            
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText('S', lastX + 10, lastY - 10);
+        }
+        
+        function drawDemandCurve(shift, color, label) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            var started = false;
+            var lastX = 0;
+            var lastY = 0;
+            for (var q = 0; q <= 40 + shift; q += 0.1) {
+                var p = demandPrice(q, shift);
+                if (p < 0) break;
+                if (p > 30) continue;
+                var x = quantityToX(q);
+                var y = priceToY(p);
+                if (!started) {
+                    ctx.moveTo(x, y);
+                    started = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                lastX = x;
+                lastY = y;
+            }
+            ctx.stroke();
+            
+            ctx.fillStyle = color;
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText(label, lastX + 10, lastY + 5);
+        }
+        
+        function drawPoint(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        
+        function drawArrow(x1, y1, x2, y2, color, label, dashed, labelBelow, labelLeft) {
+            var headlen = 12;
+            var angle = Math.atan2(y2 - y1, x2 - x1);
+            
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 3;
+            
+            if (dashed) {
+                ctx.setLineDash([8, 4]);
+            } else {
+                ctx.setLineDash([]);
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), 
+                       y2 - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), 
+                       y2 - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+            
+            if (label) {
+                ctx.fillStyle = '#000';
+                ctx.font = '14px Arial';
+                var midX = (x1 + x2) / 2;
+                var midY = (y1 + y2) / 2;
+                var yOffset = labelBelow ? 20 : -10;
+                var xOffset = labelLeft ? -70 : 0;
+                ctx.fillText(label, midX + xOffset, midY + yOffset);
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawAxes();
+            drawSupplyCurve();
+            drawDemandCurve(0, '#3498db', 'D1');
+            
+            var x1 = quantityToX(initialQuantity);
+            var y1 = priceToY(initialPrice);
+            drawPoint(x1, y1, '#3498db');
+            
+            if (demandShift > 0.5) {
+                drawDemandCurve(demandShift, '#2ecc71', 'D2');
+                
+                var newQ = 20 + 0.5 * demandShift;
+                var newP = 0.5 * newQ;
+                
+                var x2 = quantityToX(newQ);
+                var y2 = priceToY(newP);
+                drawPoint(x2, y2, '#2ecc71');
+                
+                var qd2AtP1 = demandQuantity(initialPrice, demandShift);
+                var x3 = quantityToX(qd2AtP1);
+                drawArrow(x1 + 10, y1, x3 - 10, y1, '#9b59b6', 'Shortage', true, true, false);
+                
+                var offsetLeft = 20;
+                var supplyStartQ = initialQuantity - (offsetLeft / 16);
+                var supplyStartP = supplyPrice(supplyStartQ);
+                var supplyEndQ = newQ - (offsetLeft / 16);
+                var supplyEndP = supplyPrice(supplyEndQ);
+                
+                var supplyStartX = quantityToX(supplyStartQ);
+                var supplyStartY = priceToY(supplyStartP);
+                var supplyEndX = quantityToX(supplyEndQ);
+                var supplyEndY = priceToY(supplyEndP);
+                drawArrow(supplyStartX, supplyStartY, supplyEndX, supplyEndY, '#e74c3c', 'Increase Qs', false, false, true);
+                
+                var offsetRight = 20;
+                var demandStartQ = qd2AtP1 + (offsetRight / 16);
+                var demandStartP = demandPrice(demandStartQ, demandShift);
+                var demandEndQ = newQ + (offsetRight / 16);
+                var demandEndP = demandPrice(demandEndQ, demandShift);
+                
+                var demandStartX = quantityToX(demandStartQ);
+                var demandStartY = priceToY(demandStartP);
+                var demandEndX = quantityToX(demandEndQ);
+                var demandEndY = priceToY(demandEndP);
+                drawArrow(demandStartX, demandStartY, demandEndX, demandEndY, '#e74c3c', 'Decrease Qd', false, false, false);
+                
+                var priceArrowX = 65;
+                drawArrow(priceArrowX, y1 - 5, priceArrowX, y2 + 5, '#e74c3c', 'Price up', false, false, true);
+                
+                marketInfo.innerHTML = '<strong>Initial Equilibrium:</strong> Price = $' + initialPrice.toFixed(2) + ', Quantity = ' + initialQuantity.toFixed(1) + ' units<br>' +
+                    '<strong>New Equilibrium:</strong> Price = $' + newP.toFixed(2) + ', Quantity = ' + newQ.toFixed(1) + ' units<br>' +
+                    '<strong>Changes:</strong> Price +$' + (newP - initialPrice).toFixed(2) + ', Quantity +' + (newQ - initialQuantity).toFixed(1) + ' units';
+            } else {
+                marketInfo.innerHTML = 'Initial Equilibrium: Price = $' + initialPrice.toFixed(2) + ', Quantity = ' + initialQuantity + ' units';
+            }
+        }
+        
+        slider.addEventListener('input', function(e) {
+            demandShift = parseFloat(e.target.value);
+            sliderValue.textContent = 'Demand Shift: ' + demandShift.toFixed(1) + ' units';
+            slider.setAttribute('aria-valuenow', demandShift);
+            slider.setAttribute('aria-valuetext', 'Demand shifted ' + demandShift.toFixed(1) + ' units to the right');
+            draw();
+            
+            if (demandShift > 0.5) {
+                announcements.textContent = 'Demand shifted ' + demandShift.toFixed(1) + ' units. New equilibrium established.';
+            }
+        });
+        
+        resetBtn.addEventListener('click', function() {
+            demandShift = 0;
+            slider.value = 0;
+            sliderValue.textContent = 'Demand Shift: 0 units';
+            slider.setAttribute('aria-valuenow', 0);
+            slider.setAttribute('aria-valuetext', 'No shift');
+            draw();
+            announcements.textContent = 'Graph reset to initial state';
+        });
+        
+        draw();
+    </script>
+</body>
+</html>
