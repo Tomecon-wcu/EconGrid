@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U.S. Market for Beef – Demand Shift Model</title>
+  <meta name="description" content="Interactive microeconomics model illustrating an increase in demand in the U.S. beef market, showing shortage, new equilibrium, and quantity adjustments." />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens ────────────────────────────────── */
+    :root {
+      --bg:        #f7f4ef;
+      --panel:     #ffffff;
+      --ink:       #1a1a2e;
+      --muted:     #5a5a72;
+      --supply:    #2563a8;
+      --demand:    #b03a2e;
+      --demand2:   #c0392b;
+      --new-eq:    #1d7a3a;
+      --arrow-sh:  #d97706;
+      --arrow-qs:  #2563a8;
+      --arrow-qd:  #b03a2e;
+      --slider:    #1d7a3a;
+      --border:    #e0dbd0;
+      --shadow:    0 4px 24px rgba(26,26,46,0.10);
+      --radius:    12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 48px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: .01em;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: .95rem;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    /* ── Main layout ──────────────────────────────────── */
+    .layout {
+      display: flex;
+      gap: 24px;
+      width: 100%;
+      max-width: 1060px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    /* ── Graph card ───────────────────────────────────── */
+    .graph-card {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      flex: 1 1 580px;
+      padding: 20px 16px 12px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    /* ── Side panel ───────────────────────────────────── */
+    .side {
+      flex: 0 1 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 20px;
+    }
+
+    .card h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    /* ── Slider ───────────────────────────────────────── */
+    .slider-group { display: flex; flex-direction: column; gap: 10px; }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+    .slider-label span { color: var(--muted); font-weight: 400; font-size: .85rem; }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #d1cec8;
+      outline: none;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    input[type=range]:focus { outline: 3px solid var(--slider); outline-offset: 3px; }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--slider);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 6px rgba(0,0,0,.25);
+      transition: transform .15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type=range]::-moz-range-thumb {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--slider);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 6px rgba(0,0,0,.25);
+    }
+
+    /* ── Data readout ─────────────────────────────────── */
+    .readout { display: grid; gap: 10px; }
+    .readout-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .9rem;
+    }
+    .readout-label { color: var(--muted); }
+    .readout-value {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      font-size: .95rem;
+    }
+    .val-eq   { color: var(--new-eq); }
+    .val-sh   { color: var(--arrow-sh); }
+    .val-old  { color: var(--muted); }
+
+    /* ── Legend ───────────────────────────────────────── */
+    .legend { display: flex; flex-direction: column; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: .88rem; }
+    .legend-swatch {
+      width: 28px; height: 4px; border-radius: 2px; flex-shrink: 0;
+    }
+    .legend-swatch.dashed {
+      background: repeating-linear-gradient(90deg, currentColor 0, currentColor 5px, transparent 5px, transparent 10px);
+    }
+
+    /* ── Narrative box ────────────────────────────────── */
+    .narrative {
+      font-size: .88rem;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+    .narrative strong { color: var(--ink); }
+
+    /* ── Reset btn ────────────────────────────────────── */
+    button#resetBtn {
+      width: 100%;
+      padding: 10px;
+      background: var(--ink);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: .92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .12s;
+      letter-spacing: .04em;
+    }
+    button#resetBtn:hover { background: #2d2d4a; }
+    button#resetBtn:focus { outline: 3px solid var(--slider); outline-offset: 3px; }
+    button#resetBtn:active { transform: scale(.97); }
+
+    /* ── Screen-reader only ───────────────────────────── */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    /* ── Live region ──────────────────────────────────── */
+    #liveRegion {
+      position: absolute; left: -9999px;
+    }
+
+    @media (max-width: 640px) {
+      .layout { flex-direction: column; }
+      .side { flex: 1 1 auto; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="liveRegion" aria-live="polite" aria-atomic="true"></div>
+
+<h1>U.S. Market for Beef</h1>
+<p class="subtitle">Interactive Demand-Shift Model &mdash; Principles of Microeconomics</p>
+
+<div class="layout">
+
+  <!-- ── Graph ── -->
+  <div class="graph-card">
+    <canvas id="chart" width="700" height="520"
+      role="img"
+      aria-label="Supply and demand graph for the U.S. beef market. Use the slider to shift demand rightward and observe the resulting shortage and new equilibrium."
+    ></canvas>
+  </div>
+
+  <!-- ── Side Panel ── -->
+  <div class="side">
+
+    <!-- Slider -->
+    <div class="card">
+      <h2>Demand Shift Control</h2>
+      <div class="slider-group">
+        <div class="slider-label">
+          Shift Amount <span id="shiftLabel">0 bil. lbs.</span>
+        </div>
+        <input
+          type="range"
+          id="shiftSlider"
+          min="0" max="12" step="0.5"
+          value="0"
+          aria-label="Demand shift amount in billion pounds. Move right to increase demand."
+          aria-valuemin="0"
+          aria-valuemax="12"
+          aria-valuenow="0"
+          aria-valuetext="No shift — market at original equilibrium"
+        />
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)">
+          <span>No shift</span><span>+12 bil. lbs.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market Data -->
+    <div class="card">
+      <h2>Market Outcomes</h2>
+      <div class="readout" role="status" aria-live="polite" aria-atomic="true">
+        <div class="readout-row">
+          <span class="readout-label">Original Price</span>
+          <span class="readout-value val-old" id="origPrice">$8.00 / lb.</span>
+        </div>
+        <div class="readout-row">
+          <span class="readout-label">Original Qty.</span>
+          <span class="readout-value val-old" id="origQty">30 bil. lbs.</span>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border)">
+        <div class="readout-row">
+          <span class="readout-label">Shortage at $8</span>
+          <span class="readout-value val-sh" id="shortage">—</span>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border)">
+        <div class="readout-row">
+          <span class="readout-label">New Eq. Price</span>
+          <span class="readout-value val-eq" id="newPrice">—</span>
+        </div>
+        <div class="readout-row">
+          <span class="readout-label">New Eq. Qty.</span>
+          <span class="readout-value val-eq" id="newQty">—</span>
+        </div>
+        <div class="readout-row">
+          <span class="readout-label">↑ Qty. Supplied</span>
+          <span class="readout-value" style="color:var(--arrow-qs)" id="deltaQs">—</span>
+        </div>
+        <div class="readout-row">
+          <span class="readout-label">↓ Qty. Demanded</span>
+          <span class="readout-value" style="color:var(--arrow-qd)" id="deltaQd">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card">
+      <h2>Legend</h2>
+      <div class="legend" role="list">
+        <div class="legend-item" role="listitem">
+          <div class="legend-swatch" style="background:var(--supply)"></div>
+          <span>Supply (S)</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-swatch" style="background:var(--demand)"></div>
+          <span>Original Demand (D)</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-swatch" style="background:var(--demand2);opacity:.55"></div>
+          <span>New Demand (D′)</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-swatch" style="background:var(--arrow-sh)"></div>
+          <span>Shortage at original price</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-swatch" style="background:var(--arrow-qs)"></div>
+          <span>↑ Quantity supplied (along S)</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-swatch" style="background:var(--arrow-qd)"></div>
+          <span>↓ Quantity demanded (along D′)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narrative -->
+    <div class="card">
+      <h2>What's Happening?</h2>
+      <p class="narrative" id="narrative">
+        Move the slider to shift the demand curve rightward, simulating an increase in demand
+        (e.g., rising income, changing preferences). At the original price of <strong>$8</strong>,
+        a <strong>shortage</strong> emerges. Rising prices then incentivize producers to supply more,
+        while consumers demand less — moving the market to a new equilibrium.
+      </p>
+    </div>
+
+    <button id="resetBtn" aria-label="Reset demand shift to zero">↺ Reset</button>
+
+  </div><!-- /side -->
+</div><!-- /layout -->
+
+<script>
+// ── Model Parameters ────────────────────────────────────────────────────────
+// Linear S & D through equilibrium (P=8, Q=30)
+// Supply:  P = 2 + (6/30)*Q  → slope 0.2/bil.lb
+//          Qs = (P - 2) / 0.2 = 5P - 10
+// Demand:  P = 14 - (6/30)*Q → slope -0.2/bil.lb
+//          Qd = (14 - P) / 0.2 = 70 - 5P
+// Verify eq: Qs=Qd → 5P-10 = 70-5P → 10P=80 → P=8 ✓, Q=30 ✓
+
+const EQ_P = 8;   // equilibrium price
+const EQ_Q = 30;  // equilibrium quantity (bil. lbs)
+
+// Supply: Qs = 5P - 10
+function Qs(P) { return 5 * P - 10; }
+function supplyP(Q) { return (Q + 10) / 5; }   // P from Q on supply
+
+// Demand (shift=0): Qd = 70 - 5P
+// After shift s:    Qd = 70 - 5P + s  (rightward shift by s)
+function Qd(P, s) { return 70 - 5 * P + s; }
+function demandP(Q, s) { return (70 + s - Q) / 5; } // P from Q on demand
+
+// New equilibrium after shift s:
+// 5P - 10 = 70 - 5P + s → 10P = 80 + s → P* = 8 + s/10
+// Q* = 5P* - 10
+function newEq(s) {
+  const P = 8 + s / 10;
+  const Q = 5 * P - 10;
+  return { P, Q };
+}
+
+// ── Canvas Setup ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+// Graph domain
+const Q_MIN = 0, Q_MAX = 55;
+const P_MIN = 0, P_MAX = 16;
+
+// Margins (in canvas px, logical size 700×520)
+const M = { top: 40, right: 60, bottom: 60, left: 72 };
+const CW = 700, CH = 520;
+const GW = CW - M.left - M.right;
+const GH = CH - M.top  - M.bottom;
+
+function toX(q) { return M.left + (q - Q_MIN) / (Q_MAX - Q_MIN) * GW; }
+function toY(p) { return M.top  + (P_MAX - p) / (P_MAX - P_MIN) * GH; }
+
+// ── Animation State ──────────────────────────────────────────────────────────
+let currentShift = 0;
+let targetShift  = 0;
+let rafId = null;
+
+// ── Drawing Helpers ──────────────────────────────────────────────────────────
+function drawArrow(x1, y1, x2, y2, color, lw, label, labelSide) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 4) return;
+  const ux = dx/len, uy = dy/len;
+  const hs = Math.min(12, len * 0.35); // head size
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle   = color;
+  ctx.lineWidth   = lw;
+  ctx.lineCap     = 'round';
+  ctx.shadowColor = 'rgba(0,0,0,.18)';
+  ctx.shadowBlur  = 3;
+
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  // Arrowhead
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - ux*hs - uy*hs*.5, y2 - uy*hs + ux*hs*.5);
+  ctx.lineTo(x2 - ux*hs + uy*hs*.5, y2 - uy*hs - ux*hs*.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Label
+  if (label) {
+    ctx.shadowBlur = 0;
+    ctx.font = 'bold 11px "Source Sans 3", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const mx = (x1+x2)/2, my = (y1+y2)/2;
+    const offset = 16;
+    const perpX = -uy * offset * (labelSide || 1);
+    const perpY =  ux * offset * (labelSide || 1);
+    // white outline
+    ctx.strokeStyle = 'rgba(255,255,255,.85)';
+    ctx.lineWidth = 3.5;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(label, mx + perpX, my + perpY);
+    ctx.fillStyle = color;
+    ctx.fillText(label, mx + perpX, my + perpY);
+  }
+  ctx.restore();
+}
+
+function drawLine(pts, color, lw, dash=[]) {
+  if (pts.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function labelCurve(x, y, text, color, align='left') {
+  ctx.save();
+  ctx.font = 'bold 14px "Playfair Display", serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+// ── Main Draw ────────────────────────────────────────────────────────────────
+function draw(s) {
+  ctx.clearRect(0, 0, CW, CH);
+
+  const dpr = window.devicePixelRatio || 1;
+
+  // ── Axes ──
+  ctx.save();
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(M.left, M.top); ctx.lineTo(M.left, M.top + GH + 8); // Y
+  ctx.moveTo(M.left - 8, M.top + GH); ctx.lineTo(M.left + GW, M.top + GH); // X
+  ctx.stroke();
+  ctx.restore();
+
+  // Axis labels
+  ctx.save();
+  ctx.font = '13px "Source Sans 3", sans-serif';
+  ctx.fillStyle = '#444';
+  ctx.textAlign = 'center';
+
+  // Y-axis ticks & labels
+  for (let p = 0; p <= P_MAX; p += 2) {
+    const y = toY(p);
+    ctx.beginPath();
+    ctx.moveTo(M.left - 5, y); ctx.lineTo(M.left, y);
+    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#555';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$' + p, M.left - 9, y);
+  }
+
+  // X-axis ticks & labels
+  for (let q = 0; q <= Q_MAX; q += 5) {
+    const x = toX(q);
+    ctx.beginPath();
+    ctx.moveTo(x, M.top + GH); ctx.lineTo(x, M.top + GH + 5);
+    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#555';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(q, x, M.top + GH + 8);
+  }
+
+  // Axis titles
+  ctx.save();
+  ctx.translate(16, M.top + GH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.font = 'bold 13px "Source Sans 3", sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Beef Price ($ per pound)', 0, 0);
+  ctx.restore();
+
+  ctx.font = 'bold 13px "Source Sans 3", sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Quantity of Beef (Billion Pounds)', M.left + GW/2, CH - 4);
+  ctx.restore();
+
+  // ── Supply curve ──
+  // P = 0 → Q = -10 (off screen, clip to Q_MIN side)
+  // Draw from (Q_MIN, P at Q_MIN) to (Q_MAX, P at Q_MAX)
+  const supplyPts = [[toX(Q_MIN), toY(supplyP(Q_MIN))],[toX(Q_MAX), toY(supplyP(Q_MAX))]];
+  drawLine(supplyPts, '#2563a8', 2.5);
+  labelCurve(toX(Q_MAX) + 6, toY(supplyP(Q_MAX)), 'S', '#2563a8', 'left');
+
+  // ── Original demand curve ──
+  const origDPts = [[toX(Q_MIN), toY(demandP(Q_MIN,0))],[toX(Q_MAX), toY(demandP(Q_MAX,0))]];
+  drawLine(origDPts, '#b03a2e', 2.5);
+  labelCurve(toX(Q_MAX) + 6, toY(demandP(Q_MAX,0)), 'D', '#b03a2e', 'left');
+
+  // ── New demand curve (shifted) ──
+  if (s > 0.01) {
+    const alpha = Math.min(s / 12, 1);
+    const newDColor = `rgba(192,57,43,${0.25 + 0.75 * alpha})`;
+    const newDPts = [[toX(Q_MIN), toY(demandP(Q_MIN,s))],[toX(Q_MAX), toY(demandP(Q_MAX,s))]];
+    drawLine(newDPts, newDColor, 2.5);
+    const dLabelX = toX(Q_MAX) + 6;
+    const dLabelY = toY(demandP(Q_MAX, s));
+    ctx.save();
+    ctx.font = 'bold 14px "Playfair Display", serif';
+    ctx.fillStyle = newDColor;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("D′", dLabelX, dLabelY);
+    ctx.restore();
+  }
+
+  // ── Dashed lines at original equilibrium ──
+  const eqX = toX(EQ_Q), eqY = toY(EQ_P);
+  drawLine([[M.left, eqY],[eqX, eqY]], '#888', 1, [5,4]);
+  drawLine([[eqX, eqY],[eqX, toY(0)]], '#888', 1, [5,4]);
+
+  // Original equilibrium dot
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(eqX, eqY, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+  ctx.restore();
+
+  if (s > 0.01) {
+    const { P: nP, Q: nQ } = newEq(s);
+    const alpha = Math.min(s / 12, 1);
+
+    // Qs at original price ($8) — where supply crosses P=8
+    const qsAtOld = Qs(EQ_P);   // = 30 (stays at 30)
+    // Qd at original price on NEW demand curve
+    const qdAtOld = Qd(EQ_P, s); // = 30 + s
+
+    // ── Shortage arrow: horizontal at P=8 from Qs($8) to Qd($8,s) ──
+    const shX1 = toX(qsAtOld); // = toX(30)
+    const shX2 = toX(qdAtOld);
+    const shY  = toY(EQ_P);
+    const shiftArrowColor = `rgba(217,119,6,${alpha})`;
+    // Draw shortage arrow slightly below the eq price line
+    const shYOffset = shY + 18;
+    drawArrow(shX1, shYOffset, shX2, shYOffset, shiftArrowColor, 2.5,
+      `Shortage: ${s.toFixed(1)} bil. lbs.`, -1);
+
+    // ── Arrow along supply: from (EQ_Q, EQ_P) up to (nQ, nP) ──
+    const qsArrowColor = `rgba(37,99,168,${alpha})`;
+    drawArrow(eqX, eqY, toX(nQ), toY(nP), qsArrowColor, 2.5, '↑ Qs', 1);
+
+    // ── Arrow along new demand: from point on D′ at (qdAtOld, EQ_P) down to (nQ, nP) ──
+    const qdArrowColor = `rgba(176,58,46,${alpha})`;
+    drawArrow(toX(qdAtOld), toY(EQ_P), toX(nQ), toY(nP), qdArrowColor, 2.5, '↓ Qd', -1);
+
+    // ── New equilibrium dashed lines ──
+    const neqX = toX(nQ), neqY = toY(nP);
+    drawLine([[M.left, neqY],[neqX, neqY]], `rgba(29,122,58,${alpha})`, 1.2, [5,4]);
+    drawLine([[neqX, neqY],[neqX, toY(0)]], `rgba(29,122,58,${alpha})`, 1.2, [5,4]);
+
+    // New equilibrium dot
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(neqX, neqY, 6, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(29,122,58,${alpha})`;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // New price / qty labels
+    ctx.save();
+    ctx.font = `bold 12px "Source Sans 3", sans-serif`;
+    ctx.fillStyle = `rgba(29,122,58,${Math.min(alpha*2,1)})`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$' + nP.toFixed(2), M.left - 9, neqY);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(nQ.toFixed(1), neqX, toY(0) + 8);
+    ctx.restore();
+  }
+
+  // Title
+  ctx.save();
+  ctx.font = 'bold 16px "Playfair Display", serif';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('U.S. Market for Beef', M.left + GW/2, 8);
+  ctx.restore();
+}
+
+// ── HiDPI support ────────────────────────────────────────────────────────────
+function setupCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = CW * dpr;
+  canvas.height = CH * dpr;
+  canvas.style.width  = CW + 'px';
+  canvas.style.height = CH + 'px';
+  ctx.scale(dpr, dpr);
+}
+
+// ── UI Updates ───────────────────────────────────────────────────────────────
+function updateUI(s) {
+  document.getElementById('shiftLabel').textContent =
+    s === 0 ? '0 bil. lbs.' : '+' + s.toFixed(1) + ' bil. lbs.';
+
+  const slider = document.getElementById('shiftSlider');
+  slider.setAttribute('aria-valuenow', s.toFixed(1));
+
+  if (s < 0.05) {
+    slider.setAttribute('aria-valuetext', 'No shift — market at original equilibrium');
+    document.getElementById('shortage').textContent = '—';
+    document.getElementById('newPrice').textContent = '—';
+    document.getElementById('newQty').textContent   = '—';
+    document.getElementById('deltaQs').textContent  = '—';
+    document.getElementById('deltaQd').textContent  = '—';
+    document.getElementById('narrative').innerHTML =
+      `Move the slider to shift the demand curve rightward, simulating an increase in demand
+      (e.g., rising income, changing preferences). At the original price of <strong>$8</strong>,
+      a <strong>shortage</strong> emerges. Rising prices then incentivize producers to supply more,
+      while consumers demand less — moving the market to a new equilibrium.`;
+    document.getElementById('liveRegion').textContent = 'Demand reset to original position. Equilibrium: $8.00 per pound, 30 billion pounds.';
+  } else {
+    const { P: nP, Q: nQ } = newEq(s);
+    const shortage = s.toFixed(1);
+    const deltaQs  = (nQ - EQ_Q).toFixed(1);
+    const deltaQd  = s.toFixed(1); // = qdAtOld - nQ
+
+    document.getElementById('shortage').textContent = shortage + ' bil. lbs.';
+    document.getElementById('newPrice').textContent = '$' + nP.toFixed(2) + ' / lb.';
+    document.getElementById('newQty').textContent   = nQ.toFixed(1) + ' bil. lbs.';
+    document.getElementById('deltaQs').textContent  = '+' + deltaQs + ' bil. lbs.';
+    document.getElementById('deltaQd').textContent  = '−' + deltaQd + ' bil. lbs.';
+
+    slider.setAttribute('aria-valuetext',
+      `Demand shifted right by ${s.toFixed(1)} billion pounds. ` +
+      `Shortage of ${shortage} billion pounds at $8. ` +
+      `New equilibrium: $${nP.toFixed(2)} per pound, ${nQ.toFixed(1)} billion pounds.`);
+
+    document.getElementById('narrative').innerHTML =
+      `Demand has increased by <strong>${s.toFixed(1)} bil. lbs.</strong> At the original
+      price of <strong>$8</strong>, consumers now want <strong>${shortage} bil. lbs.</strong>
+      more than suppliers offer — creating a <strong style="color:var(--arrow-sh)">shortage</strong>.
+      The price is bid up to <strong style="color:var(--new-eq)">$${nP.toFixed(2)}</strong>, which
+      <strong style="color:var(--arrow-qs)">increases quantity supplied</strong> by ${deltaQs} bil. lbs.
+      (movement along S) and <strong style="color:var(--arrow-qd)">decreases quantity demanded</strong>
+      by ${deltaQd} bil. lbs. (movement along D′), restoring equilibrium at
+      <strong style="color:var(--new-eq)">${nQ.toFixed(1)} bil. lbs.</strong>`;
+
+    document.getElementById('liveRegion').textContent =
+      `Demand shifted by ${s.toFixed(1)} billion pounds. Shortage: ${shortage}. ` +
+      `New equilibrium price: $${nP.toFixed(2)}. New quantity: ${nQ.toFixed(1)} billion pounds.`;
+  }
+}
+
+// ── Smooth Animation ─────────────────────────────────────────────────────────
+function animate() {
+  const diff = targetShift - currentShift;
+  if (Math.abs(diff) < 0.01) {
+    currentShift = targetShift;
+    draw(currentShift);
+    rafId = null;
+    return;
+  }
+  currentShift += diff * 0.12;
+  draw(currentShift);
+  rafId = requestAnimationFrame(animate);
+}
+
+function setShift(s) {
+  targetShift = s;
+  updateUI(s);
+  if (!rafId) rafId = requestAnimationFrame(animate);
+}
+
+// ── Event Listeners ──────────────────────────────────────────────────────────
+document.getElementById('shiftSlider').addEventListener('input', function() {
+  setShift(parseFloat(this.value));
+});
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+  document.getElementById('shiftSlider').value = 0;
+  setShift(0);
+});
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+setupCanvas();
+draw(0);
+updateUI(0);
+</script>
+</body>
+</html>
