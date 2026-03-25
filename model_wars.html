@@ -200,22 +200,17 @@ function castVote(side) {
 async function saveAllRounds() {
     for (var i = 0; i < roundLog.length; i++) {
         var r = roundLog[i];
+        var url = SHEET_URL
+            + '?student_id='  + encodeURIComponent(studentId)
+            + '&round='       + r.round
+            + '&modelA_id='   + r.modelA_id
+            + '&modelA_name=' + encodeURIComponent(r.modelA_name)
+            + '&modelB_id='   + r.modelB_id
+            + '&modelB_name=' + encodeURIComponent(r.modelB_name)
+            + '&chosen_id='   + r.chosen_id
+            + '&chosen_name=' + encodeURIComponent(r.chosen_name);
         try {
-            await fetch(SHEET_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    student_id:  studentId,
-                    round:       r.round,
-                    modelA_id:   r.modelA_id,
-                    modelA_name: r.modelA_name,
-                    modelB_id:   r.modelB_id,
-                    modelB_name: r.modelB_name,
-                    chosen_id:   r.chosen_id,
-                    chosen_name: r.chosen_name
-                })
-            });
+            await fetch(url, { mode: 'no-cors' });
         } catch(e) {}
     }
     document.getElementById('saving-area').style.display = 'none';
