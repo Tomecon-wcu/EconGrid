@@ -191,29 +191,14 @@ function castVote(side) {
     }
 }
 
-// Send all rounds one at a time using await so the saving screen shows
+// Send the id
 async function saveAllRounds() {
-    for (var i = 0; i < roundLog.length; i++) {
-        var r = roundLog[i];
-        try {
-            await fetch(SHEET_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    student_id: studentId,
-                    round:       r.round,
-                    modelA_id:   r.modelA_id,
-                    modelA_name: r.modelA_name,
-                    modelB_id:   r.modelB_id,
-                    modelB_name: r.modelB_name,
-                    chosen_id:   r.chosen_id,
-                    chosen_name: r.chosen_name,
-                    partial:     'NO'
-                })
-            });
-        } catch(e) {}
-    }
+    await fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId })
+    });
     document.getElementById('saving-area').style.display = 'none';
     document.getElementById('thankyou-area').style.display = 'block';
 }
