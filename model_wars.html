@@ -111,7 +111,7 @@
     <div class="contact-box">
         <h3>Questions?</h3>
         <p>Contact:</p>
-        <a href="mailto:tandrews@wcupa.edu">tandrews@wcupa.edu</a>
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#116;&#97;&#110;&#100;&#114;&#101;&#119;&#115;&#64;&#119;&#99;&#117;&#112;&#97;&#46;&#101;&#100;&#117;">tandrews&#64;wcupa.edu</a>
     </div>
 
 </div>
@@ -198,11 +198,4 @@ function castVote(side) {
 // sendBeacon fires reliably even as the page unloads, follows redirects,
 // and is not blocked by same-origin policy for POST requests.
 function sendAllRounds(partial) {
-    var payload = {
-        action:     'session',
-        student_id: studentId,
-        timestamp:  new Date().toISOString(),
-        partial:    partial,
-        rounds:     roundLog
-    };
-    var blob = new Blob([JSON.stringify(payload)], { type: 'ap
+    var payloa
