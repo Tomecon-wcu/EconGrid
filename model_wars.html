@@ -192,10 +192,13 @@ function sendAllRounds(partial) {
         partial: partial,
         rounds: roundLog
     };
-    var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-    navigator.sendBeacon(SHEET_URL, blob);
+    fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+    });
 }
-
 window.addEventListener('beforeunload', function() {
     if (roundLog.length > 0 && voteCount < MAX_VOTES) {
         sendAllRounds('YES');
