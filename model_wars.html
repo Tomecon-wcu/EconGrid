@@ -71,7 +71,7 @@
 
     <div id="id-gate">
         <h2>Enter Your Student ID</h2>
-        <p>Your ID is used only to evaluate the quality of your evaluations against the final model rankings. It will not be displayed publicly.</p>
+        <p>Your ID is used only to compare the quality of your evaluations against the final model rankings. It will not be displayed publicly.</p>
         <input type="text" id="id-input" placeholder="e.g. 12345678" maxlength="20" autocomplete="off">
         <div id="id-error">Please enter your Student ID before continuing.</div>
         <button id="id-submit">Start Model Wars</button>
@@ -149,25 +149,34 @@ function startWar() {
 }
 
 function nextPair() {
-    var pool = models.slice().sort(function() { return Math.random() - 0.5; });
-    var a = null, b = null, key;
-    var found = false;
-    for (var i = 0; i < pool.length && !found; i++) {
-        for (var j = 0; j < pool.length && !found; j++) {
-            if (i === j) continue;
-            var mn = Math.min(pool[i].id, pool[j].id);
-            var mx = Math.max(pool[i].id, pool[j].id);
-            key = mn + '-' + mx;
-            if (!usedPairs[key]) { a = pool[i]; b = pool[j]; found = true; }
+    // Build list of all unused pairs then pick one at random
+    // This avoids the bias of always scanning from position 0
+    var unused = [];
+    for (var i = 0; i < models.length; i++) {
+        for (var j = i + 1; j < models.length; j++) {
+            var key = models[i].id + '-' + models[j].id;
+            if (!usedPairs[key]) unused.push({ a: models[i], b: models[j], key: key });
         }
     }
-    if (!a) { a = pool[0]; b = pool[1]; key = Math.min(a.id,b.id)+'-'+Math.max(a.id,b.id); }
-    usedPairs[key] = true;
-    currentA = a; currentB = b;
-    document.getElementById('model-a-name').textContent = a.name;
-    document.getElementById('model-b-name').textContent = b.name;
-    document.getElementById('iframe-a').src = a.url;
-    document.getElementById('iframe-b').src = b.url;
+    // If all pairs exhausted, reset and start over
+    if (unused.length === 0) {
+        usedPairs = {};
+        for (var i = 0; i < models.length; i++) {
+            for (var j = i + 1; j < models.length; j++) {
+                unused.push({ a: models[i], b: models[j], key: models[i].id + '-' + models[j].id });
+            }
+        }
+    }
+    // Pick a truly random unused pair
+    var pick = unused[Math.floor(Math.random() * unused.length)];
+    usedPairs[pick.key] = true;
+    // Randomly assign which model is A and which is B
+    if (Math.random() < 0.5) { currentA = pick.a; currentB = pick.b; }
+    else                      { currentA = pick.b; currentB = pick.a; }
+    document.getElementById('model-a-name').textContent = currentA.name;
+    document.getElementById('model-b-name').textContent = currentB.name;
+    document.getElementById('iframe-a').src = currentA.url;
+    document.getElementById('iframe-b').src = currentB.url;
 }
 
 document.getElementById('btn-a').onclick = function() { castVote('A'); };
@@ -200,17 +209,22 @@ function castVote(side) {
 async function saveAllRounds() {
     for (var i = 0; i < roundLog.length; i++) {
         var r = roundLog[i];
-        var url = SHEET_URL
-            + '?student_id='  + encodeURIComponent(studentId)
-            + '&round='       + r.round
-            + '&modelA_id='   + r.modelA_id
-            + '&modelA_name=' + encodeURIComponent(r.modelA_name)
-            + '&modelB_id='   + r.modelB_id
-            + '&modelB_name=' + encodeURIComponent(r.modelB_name)
-            + '&chosen_id='   + r.chosen_id
-            + '&chosen_name=' + encodeURIComponent(r.chosen_name);
         try {
-            await fetch(url, { mode: 'no-cors' });
+            await fetch(SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_id:  studentId,
+                    round:       r.round,
+                    modelA_id:   r.modelA_id,
+                    modelA_name: r.modelA_name,
+                    modelB_id:   r.modelB_id,
+                    modelB_name: r.modelB_name,
+                    chosen_id:   r.chosen_id,
+                    chosen_name: r.chosen_name
+                })
+            });
         } catch(e) {}
     }
     document.getElementById('saving-area').style.display = 'none';
