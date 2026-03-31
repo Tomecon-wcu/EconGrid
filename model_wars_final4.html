@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Wars: Final Four</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; background:#f5f5f7; min-height:100vh; }
+        .container { max-width:1400px; margin:0 auto; padding:20px; }
+
+        .banner { background:white; border-radius:16px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:40px; max-height:220px; }
+        .banner img { width:100%; height:auto; display:block; object-fit:cover; object-position:bottom; max-height:220px; }
+
+        .header-box { background:white; border-radius:16px; padding:40px; margin-bottom:30px; box-shadow:0 2px 8px rgba(0,0,0,.08); border:1px solid #d2d2d7; text-align:center; }
+        .header-box h1 { color:#1d1d1f; font-size:3.5em; font-weight:600; letter-spacing:-.02em; margin-bottom:8px; }
+        .header-box .subtitle { color:#0071e3; font-size:1.3em; font-weight:500; margin-bottom:16px; }
+        .header-box p { color:#6e6e73; font-size:1.1em; line-height:1.6; max-width:700px; margin:0 auto; }
+
+        /* ID GATE */
+        #id-gate { background:white; border-radius:16px; padding:48px 40px; max-width:560px; margin:0 auto 40px; box-shadow:0 2px 8px rgba(0,0,0,.08); border:1px solid #d2d2d7; text-align:center; }
+        #id-gate h2 { color:#1d1d1f; font-size:1.6em; font-weight:600; margin-bottom:12px; }
+        #id-gate p { color:#6e6e73; font-size:1.05em; line-height:1.6; margin-bottom:28px; }
+        #id-input { width:100%; padding:14px 18px; font-size:1.2em; border:2px solid #d2d2d7; border-radius:12px; font-family:inherit; color:#1d1d1f; margin-bottom:16px; text-align:center; }
+        #id-input:focus { outline:none; border-color:#0071e3; }
+        #id-error { color:#e34000; font-size:.95em; margin-bottom:16px; display:none; }
+        #id-submit { background:#0071e3; color:white; border:none; padding:14px; font-size:1.1em; font-weight:500; border-radius:12px; cursor:pointer; font-family:inherit; width:100%; }
+        #id-submit:hover { background:#0077ed; }
+
+        /* COUNTER */
+        .vote-counter { text-align:center; margin:0 auto 30px; padding:20px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); border:1px solid #d2d2d7; max-width:900px; }
+        .vote-counter-text { font-size:1.2em; color:#1d1d1f; font-weight:500; }
+        .vote-count { font-size:1.2em; font-weight:600; color:#0071e3; margin:0 8px; }
+        .voter-id-display { font-size:.9em; color:#6e6e73; margin-top:6px; }
+
+        /* MODELS */
+        .models-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:24px; margin-bottom:32px; }
+        .model-container { background:white; border-radius:16px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); border:1px solid #d2d2d7; }
+        .model-header-a { background:#86868b; color:white; padding:20px; text-align:center; }
+        .model-header-b { background:#1d1d1f; color:white; padding:20px; text-align:center; }
+        .model-header-a h2, .model-header-b h2 { font-size:1.5em; margin-bottom:4px; font-weight:600; }
+        .model-name { font-size:.95em; opacity:.85; }
+        .model-frame { width:100%; height:720px; border:none; display:block; background:#f5f5f7; }
+
+        /* BETTING PANEL */
+        .bet-panel { background:white; border-radius:16px; padding:32px 40px; max-width:900px; margin:0 auto 40px; box-shadow:0 2px 8px rgba(0,0,0,.08); border:1px solid #d2d2d7; }
+        .bet-title { text-align:center; font-size:1.3em; font-weight:600; color:#1d1d1f; margin-bottom:24px; }
+
+        .bet-display { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:16px; }
+        .bet-side { text-align:center; min-width:140px; }
+        .bet-side-label { font-size:.9em; color:#6e6e73; margin-bottom:6px; font-weight:500; }
+        .bet-amount { font-size:2.2em; font-weight:700; padding:12px 20px; border-radius:12px; min-width:120px; display:inline-block; }
+        .bet-amount-a { background:#f0f0f0; color:#86868b; }
+        .bet-amount-b { background:#1d1d1f; color:white; }
+
+        .bet-bar-wrap { flex:1; }
+        .bet-bar-track { height:24px; border-radius:12px; position:relative; overflow:hidden; background:#1d1d1f; }
+        .bet-bar-fill-a { position:absolute; left:0; top:0; height:100%; background:#86868b; transition:width 0.1s ease; }
+
+        .slider-wrap { margin-top:20px; }
+        .slider-labels { display:flex; justify-content:space-between; font-size:.85em; color:#6e6e73; margin-bottom:8px; }
+        input[type=range] { width:100%; height:8px; border-radius:4px; -webkit-appearance:none; appearance:none; background:#d2d2d7; outline:none; cursor:pointer; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:28px; height:28px; border-radius:50%; background:white; border:3px solid #0071e3; box-shadow:0 2px 6px rgba(0,113,227,.4); cursor:pointer; }
+        input[type=range]::-moz-range-thumb { width:28px; height:28px; border-radius:50%; background:white; border:3px solid #0071e3; box-shadow:0 2px 6px rgba(0,113,227,.4); cursor:pointer; }
+        .slider-hint { text-align:center; font-size:.9em; color:#6e6e73; margin-top:10px; }
+
+        .btn-place-bet { display:block; width:100%; margin-top:24px; background:#0071e3; color:white; border:none; padding:18px; font-size:1.2em; font-weight:600; border-radius:12px; cursor:pointer; font-family:inherit; transition:background .2s; }
+        .btn-place-bet:hover { background:#0077ed; }
+
+        /* SAVING / THANK YOU */
+        .saving-message, .thank-you-message { background:linear-gradient(135deg,#6e6e73,#86868b); color:white; padding:40px; border-radius:16px; text-align:center; max-width:600px; margin:0 auto 40px; }
+        .saving-message h2, .thank-you-message h2 { font-size:2em; margin-bottom:16px; }
+        .saving-message p, .thank-you-message p { font-size:1.1em; opacity:.95; margin-bottom:12px; }
+        .return-btn { display:inline-block; background:white; color:#1d1d1f; padding:12px 28px; border-radius:12px; text-decoration:none; font-weight:500; margin-top:12px; }
+
+        .back-btn { display:inline-flex; align-items:center; gap:8px; background:white; color:#1d1d1f; font-family:inherit; font-size:.95em; font-weight:500; padding:10px 20px; border-radius:12px; text-decoration:none; border:1px solid #d2d2d7; margin-bottom:20px; }
+        .back-btn:hover { background:#f5f5f7; }
+        .back-btn svg { width:16px; height:16px; }
+
+        @media(max-width:768px) { .models-grid { grid-template-columns:1fr; } .header-box h1 { font-size:2.5em; } .bet-display { flex-direction:column; } .bet-panel { padding:24px 20px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <a href="index.html" class="back-btn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+        Back to Overview
+    </a>
+
+    <div class="banner">
+        <img src="banner.png" alt="Microeconomics ECO112 Course Banner">
+    </div>
+
+    <div class="header-box">
+        <h1>Model Wars</h1>
+        <div class="subtitle">Final Four</div>
+        <p>These are the four top-ranked models from the competition. You will see 3 head-to-head comparisons. For each pair, allocate your $1.00 between the two models using the slider — put more on the model you think is better.</p>
+    </div>
+
+    <!-- ID GATE -->
+    <div id="id-gate">
+        <h2>Enter Your Student ID</h2>
+        <p>Your ID is used only to compare the quality of your evaluations against the final model rankings. It will not be displayed publicly.</p>
+        <input type="text" id="id-input" placeholder="e.g. 12345678" maxlength="20" autocomplete="off">
+        <div id="id-error">Please enter your Student ID before continuing.</div>
+        <button id="id-submit">Start Final Four</button>
+    </div>
+
+    <!-- VOTING AREA -->
+    <div id="voting-area" style="display:none;">
+
+        <div class="vote-counter">
+            <div class="vote-counter-text">Comparisons remaining: <span class="vote-count" id="votes-remaining">3</span></div>
+            <div class="voter-id-display" id="voter-id-display"></div>
+        </div>
+
+        <div class="models-grid">
+            <div class="model-container">
+                <div class="model-header-a"><h2>Model A</h2><div class="model-name" id="model-a-name">Loading...</div></div>
+                <iframe id="iframe-a" class="model-frame" src="about:blank" title="Model A"></iframe>
+            </div>
+            <div class="model-container">
+                <div class="model-header-b"><h2>Model B</h2><div class="model-name" id="model-b-name">Loading...</div></div>
+                <iframe id="iframe-b" class="model-frame" src="about:blank" title="Model B"></iframe>
+            </div>
+        </div>
+
+        <div class="bet-panel">
+            <div class="bet-title">Place Your $1.00 Bet</div>
+            <div class="bet-display">
+                <div class="bet-side">
+                    <div class="bet-side-label">Model A</div>
+                    <span class="bet-amount bet-amount-a" id="bet-a-display">$0.50</span>
+                </div>
+                <div class="bet-bar-wrap">
+                    <div class="bet-bar-track">
+                        <div class="bet-bar-fill-a" id="bar-fill-a" style="width:50%"></div>
+                    </div>
+                </div>
+                <div class="bet-side">
+                    <div class="bet-side-label">Model B</div>
+                    <span class="bet-amount bet-amount-b" id="bet-b-display">$0.50</span>
+                </div>
+            </div>
+            <div class="slider-wrap">
+                <div class="slider-labels">
+                    <span>All on A ($1.00)</span>
+                    <span>Split evenly</span>
+                    <span>All on B ($1.00)</span>
+                </div>
+                <input type="range" id="bet-slider" min="0" max="100" value="50" step="5">
+                <div class="slider-hint" id="slider-hint">Equal confidence in both models</div>
+            </div>
+            <button class="btn-place-bet" id="btn-place-bet">Place Bet</button>
+        </div>
+
+    </div>
+
+    <!-- SAVING -->
+    <div id="saving-area" style="display:none;">
+        <div class="saving-message">
+            <h2>Thank you for your evaluations!</h2>
+            <p>Please wait while your bets are recorded...</p>
+        </div>
+    </div>
+
+    <!-- THANK YOU -->
+    <div id="thankyou-area" style="display:none;">
+        <div class="thank-you-message">
+            <h2>Thank You!</h2>
+            <p>Your Final Four evaluations have been recorded.</p>
+            <p>Results will be announced once all evaluations are complete.</p>
+            <a href="index.html" class="return-btn">Return to Introduction</a>
+        </div>
+    </div>
+
+</div>
+<script>
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwwUcTZloRMEoaBny9Vmok4k6Gh9I1BszjkgW90Hj-7dupg839P46bVwIqnprPco_QQ/exec';
+
+// Top 4 models only
+var models = [
+    { id: 27, url: 'model27.html', name: 'Model 27' },
+    { id: 12, url: 'model12.html', name: 'Model 12' },
+    { id: 16, url: 'model16.html', name: 'Model 16' },
+    { id:  8, url: 'model8.html',  name: 'Model 8'  }
+];
+
+// All 6 possible unique pairs from 4 models, pre-generated
+var ALL_PAIRS = [];
+for (var i = 0; i < models.length; i++) {
+    for (var j = i + 1; j < models.length; j++) {
+        ALL_PAIRS.push({ a: models[i], b: models[j] });
+    }
+}
+
+var MAX_ROUNDS = 3;
+var studentId  = '';
+var currentA   = null;
+var currentB   = null;
+var roundCount = 0;
+var sessionPairs = [];   // the 3 pairs chosen for this session
+var roundLog   = [];
+
+// ── ID GATE ───────────────────────────────────────────────────────────────────
+document.getElementById('id-submit').onclick = startWar;
+document.getElementById('id-input').onkeydown = function(e) {
+    if (e.key === 'Enter') startWar();
+};
+
+function startWar() {
+    var val = document.getElementById('id-input').value.trim();
+    if (!val) {
+        document.getElementById('id-input').style.borderColor = '#e34000';
+        document.getElementById('id-error').style.display = 'block';
+        return;
+    }
+    studentId = val;
+    document.getElementById('id-gate').style.display        = 'none';
+    document.getElementById('voting-area').style.display    = 'block';
+    document.getElementById('voter-id-display').textContent = 'Evaluating as: ' + studentId;
+
+    // Choose 3 random unique pairs from the 6 possible, shuffle A/B sides randomly
+    sessionPairs = choosePairs(MAX_ROUNDS);
+    loadPair(0);
+}
+
+// Pick n random unique pairs from ALL_PAIRS, randomise A/B assignment
+function choosePairs(n) {
+    var shuffled = ALL_PAIRS.slice().sort(function() { return Math.random() - 0.5; });
+    var chosen   = shuffled.slice(0, n);
+    return chosen.map(function(p) {
+        if (Math.random() < 0.5) return { a: p.a, b: p.b };
+        else                     return { a: p.b, b: p.a };
+    });
+}
+
+// ── LOAD A PRE-CHOSEN PAIR ────────────────────────────────────────────────────
+function loadPair(index) {
+    var pair = sessionPairs[index];
+    currentA = pair.a;
+    currentB = pair.b;
+    document.getElementById('model-a-name').textContent = currentA.name;
+    document.getElementById('model-b-name').textContent = currentB.name;
+    document.getElementById('iframe-a').src = currentA.url;
+    document.getElementById('iframe-b').src = currentB.url;
+    // Reset slider
+    document.getElementById('bet-slider').value = 50;
+    updateSliderDisplay(50);
+}
+
+// ── SLIDER ────────────────────────────────────────────────────────────────────
+document.getElementById('bet-slider').oninput = function() {
+    updateSliderDisplay(parseInt(this.value));
+};
+
+function updateSliderDisplay(val) {
+    var betB = val / 100;
+    var betA = 1 - betB;
+    document.getElementById('bet-a-display').textContent  = '$' + betA.toFixed(2);
+    document.getElementById('bet-b-display').textContent  = '$' + betB.toFixed(2);
+    document.getElementById('bar-fill-a').style.width     = (betA * 100) + '%';
+    var hint;
+    if      (val === 50) hint = 'Equal confidence in both models';
+    else if (val <  20)  hint = 'Strong preference for Model A';
+    else if (val <  40)  hint = 'Moderate preference for Model A';
+    else if (val <  50)  hint = 'Slight preference for Model A';
+    else if (val <  60)  hint = 'Slight preference for Model B';
+    else if (val <  80)  hint = 'Moderate preference for Model B';
+    else                 hint = 'Strong preference for Model B';
+    document.getElementById('slider-hint').textContent = hint;
+}
+
+// ── PLACE BET ─────────────────────────────────────────────────────────────────
+document.getElementById('btn-place-bet').onclick = placeBet;
+
+function placeBet() {
+    if (roundCount >= MAX_ROUNDS) return;
+    var sliderVal = parseInt(document.getElementById('bet-slider').value);
+    var betB = sliderVal / 100;
+    var betA = 1 - betB;
+
+    roundCount++;
+    roundLog.push({
+        round:       roundCount,
+        modelA_id:   currentA.id,
+        modelA_name: currentA.name,
+        modelB_id:   currentB.id,
+        modelB_name: currentB.name,
+        bet_on_A:    betA.toFixed(2),
+        bet_on_B:    betB.toFixed(2)
+    });
+
+    document.getElementById('votes-remaining').textContent = MAX_ROUNDS - roundCount;
+
+    if (roundCount >= MAX_ROUNDS) {
+        document.getElementById('voting-area').style.display = 'none';
+        document.getElementById('saving-area').style.display = 'block';
+        saveAllRounds();
+    } else {
+        loadPair(roundCount);
+    }
+}
+
+// ── SAVE ──────────────────────────────────────────────────────────────────────
+async function saveAllRounds() {
+    for (var i = 0; i < roundLog.length; i++) {
+        var r = roundLog[i];
+        var url = SHEET_URL
+            + '?mode=final4'
+            + '&student_id='  + encodeURIComponent(studentId)
+            + '&round='       + r.round
+            + '&modelA_id='   + r.modelA_id
+            + '&modelA_name=' + encodeURIComponent(r.modelA_name)
+            + '&modelB_id='   + r.modelB_id
+            + '&modelB_name=' + encodeURIComponent(r.modelB_name)
+            + '&bet_on_A='    + r.bet_on_A
+            + '&bet_on_B='    + r.bet_on_B;
+        try {
+            await fetch(url, { mode: 'no-cors' });
+        } catch(e) {}
+    }
+    document.getElementById('saving-area').style.display  = 'none';
+    document.getElementById('thankyou-area').style.display = 'block';
+}
+</script>
+</body>
+</html>
